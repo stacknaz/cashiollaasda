@@ -53,6 +53,27 @@ const FEATURED_GAMES = [
   }
 ];
 
+const EARNINGS_STATS = [
+  {
+    icon: Clock,
+    value: '17m 12s',
+    label: 'Average time until first cashout',
+    color: 'blue'
+  },
+  {
+    icon: DollarSign,
+    value: '$39.61',
+    label: 'Average earnings per user yesterday',
+    color: 'green'
+  },
+  {
+    icon: Trophy,
+    value: '$50M+',
+    label: 'Total USD earned by our users',
+    color: 'yellow'
+  }
+];
+
 const LandingPage = () => {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showLearnMore, setShowLearnMore] = useState(false);
@@ -185,6 +206,50 @@ const LandingPage = () => {
               <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-blue-800/30 rounded-full blur-2xl"></div>
               <div className="absolute -top-4 -left-4 w-32 h-32 bg-purple-500/20 rounded-full blur-3xl"></div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Earnings Stats Section */}
+      <div className="relative py-16 overflow-hidden">
+        <div className="absolute inset-0">
+          <div className="absolute -top-40 -right-40 w-96 h-96 bg-yellow-400/10 rounded-full blur-3xl"></div>
+          <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-blue-400/10 rounded-full blur-3xl"></div>
+        </div>
+
+        <div className="container mx-auto px-4 relative">
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center gap-2 bg-yellow-400/20 text-yellow-400 px-4 py-2 rounded-full text-sm font-semibold mb-4">
+              <TrendingUp className="w-4 h-4" />
+              Real-Time Statistics
+            </div>
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+              Our Users'{' '}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-yellow-500">
+                Success Story
+              </span>
+            </h2>
+            <p className="text-white/80 max-w-2xl mx-auto">
+              Join thousands of users already earning rewards on our platform
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {EARNINGS_STATS.map((stat, index) => {
+              const Icon = stat.icon;
+              return (
+                <div
+                  key={index}
+                  className="bg-gradient-to-br from-blue-900 to-blue-800 rounded-2xl p-8 text-center transform hover:scale-105 transition-all shadow-xl border border-blue-800/30"
+                >
+                  <div className={`bg-${stat.color}-400/20 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6`}>
+                    <Icon className={`w-8 h-8 text-${stat.color}-400`} />
+                  </div>
+                  <div className="text-3xl font-bold text-white mb-2">{stat.value}</div>
+                  <p className="text-white/60">{stat.label}</p>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -433,6 +498,17 @@ const LandingPage = () => {
                   </Link>
                 </li>
                 <li>
+                  <a 
+                    href="https://perkmedia-group.com"
+                    target="_blank"
+                    rel="noopener noreferrer" 
+                    className="text-white/60 hover:text-white transition-colors flex items-center gap-2"
+                  >
+                    <Gift className="w-4 h-4" />
+                    Advertise with Us
+                  </a>
+                </li>
+                <li>
                   <button 
                     onClick={handleStartEarning}
                     className="text-white/60 hover:text-white transition-colors flex items-center gap-2"
@@ -505,7 +581,7 @@ const LandingPage = () => {
           </div>
 
           {/* Trust Badges */}
-          <div className="border-t border-blue-800/30 pt-8 mt-8">
+          <div className="border-t border-blue-800/30  pt-8 mt-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
               <div className="flex items-center gap-4">
                 <div className="bg-gradient-to-br from-blue-900 to-blue-800 p-3 rounded-full">
@@ -526,22 +602,22 @@ const LandingPage = () => {
                 </p>
               </div>
             </div>
-          </div>
 
-          {/* Final CTA Banner */}
-          <div className="mt-8 bg-gradient-to-r from-blue-900 to-blue-800 rounded-2xl p-6 shadow-xl border border-blue-800/30">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-              <div>
-                <h4 className="text-white font-semibold mb-1">Start Earning Today</h4>
-                <p className="text-white/80 text-sm">Complete offers and earn up to $500 weekly</p>
+            {/* Final CTA Banner */}
+            <div className="mt-8 bg-gradient-to-r from-blue-900 to-blue-800 rounded-2xl p-6 shadow-xl border border-blue-800/30">
+              <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                <div>
+                  <h4 className="text-white font-semibold mb-1">Start Earning Today</h4>
+                  <p className="text-white/80 text-sm">Complete offers and earn up to $500 weekly</p>
+                </div>
+                <button 
+                  onClick={handleStartEarning}
+                  className="whitespace-nowrap bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600 text-blue-950 px-6 py-2 rounded-lg font-semibold flex items-center gap-2 transition-all transform hover:scale-105"
+                >
+                  Sign Up Now
+                  <ArrowRight className="w-4 h-4" />
+                </button>
               </div>
-              <button 
-                onClick={handleStartEarning}
-                className="whitespace-nowrap bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600 text-blue-950 px-6 py-2 rounded-lg font-semibold flex items-center gap-2 transition-all transform hover:scale-105"
-              >
-                Sign Up Now
-                <ArrowRight className="w-4 h-4" />
-              </button>
             </div>
           </div>
         </div>
