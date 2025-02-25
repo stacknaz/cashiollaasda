@@ -72,7 +72,6 @@ const Offerwall = () => {
   const [username, setUsername] = useState('');
   const [dailyOffers, setDailyOffers] = useState(0);
   const [streak, setStreak] = useState(0);
-  const [showPerkwall, setShowPerkwall] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const totalOffersNeeded = 30;
   const progressPercentage = (completedOffers / totalOffersNeeded) * 100;
@@ -257,59 +256,48 @@ const Offerwall = () => {
   };
 
   const renderMobileGamesSection = () => {
-    if (selectedCategory !== 'mobile' && !showPerkwall) return null;
+    if (selectedCategory !== 'mobile') return null;
 
     return (
       <div className="mb-6">
         <div className="bg-gradient-to-br from-purple-500/10 to-purple-600/5 rounded-2xl p-6 border border-purple-500/20">
-          {!showPerkwall ? (
-            <>
-              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
-                <div className="flex items-center gap-3">
-                  <div className="bg-purple-500/20 p-3 rounded-lg">
-                    <Gamepad className="w-6 h-6 text-purple-400" />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-semibold text-white">Featured Mobile Games</h3>
-                    <p className="text-white/80">Complete game offers and earn extra rewards</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setShowPerkwall(true)}
-                  className="w-full md:w-auto bg-purple-500 hover:bg-purple-600 text-white px-6 py-3 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all"
-                >
-                  View All Games
-                  <ArrowRight className="w-5 h-5" />
-                </button>
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
+            <div className="flex items-center gap-3">
+              <div className="bg-purple-500/20 p-3 rounded-lg">
+                <Gamepad className="w-6 h-6 text-purple-400" />
               </div>
+              <div>
+                <h3 className="text-xl font-semibold text-white">Mobile Game Offers</h3>
+                <p className="text-white/80">Complete game offers and earn extra rewards</p>
+              </div>
+            </div>
+          </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-blue-900/30 p-4 rounded-xl">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Star className="w-5 h-5 text-yellow-400" />
-                    <span className="text-white font-medium">High Payouts</span>
-                  </div>
-                  <p className="text-white/60 text-sm">Earn up to $50 per game completion</p>
-                </div>
-                <div className="bg-blue-900/30 p-4 rounded-xl">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Clock className="w-5 h-5 text-blue-400" />
-                    <span className="text-white font-medium">Quick Rewards</span>
-                  </div>
-                  <p className="text-white/60 text-sm">Most games credit within 24 hours</p>
-                </div>
-                <div className="bg-blue-900/30 p-4 rounded-xl">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Gift className="w-5 h-5 text-purple-400" />
-                    <span className="text-white font-medium">Bonus Points</span>
-                  </div>
-                  <p className="text-white/60 text-sm">Earn extra points for achievements</p>
-                </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="bg-blue-900/30 p-4 rounded-xl">
+              <div className="flex items-center gap-2 mb-2">
+                <Star className="w-5 h-5 text-yellow-400" />
+                <span className="text-white font-medium">High Payouts</span>
               </div>
-            </>
-          ) : (
-            <PerkwallFrame onClose={() => setShowPerkwall(false)} />
-          )}
+              <p className="text-white/60 text-sm">Earn up to $50 per game completion</p>
+            </div>
+            <div className="bg-blue-900/30 p-4 rounded-xl">
+              <div className="flex items-center gap-2 mb-2">
+                <Clock className="w-5 h-5 text-blue-400" />
+                <span className="text-white font-medium">Quick Rewards</span>
+              </div>
+              <p className="text-white/60 text-sm">Most games credit within 24 hours</p>
+            </div>
+            <div className="bg-blue-900/30 p-4 rounded-xl">
+              <div className="flex items-center gap-2 mb-2">
+                <Gift className="w-5 h-5 text-purple-400" />
+                <span className="text-white font-medium">Bonus Points</span>
+              </div>
+              <p className="text-white/60 text-sm">Earn extra points for achievements</p>
+            </div>
+          </div>
+
+          <PerkwallFrame onClose={() => setSelectedCategory('all')} />
         </div>
       </div>
     );
@@ -625,11 +613,6 @@ const Offerwall = () => {
             streak
           }}
         />
-      )}
-
-      {/* Perkwall Frame */}
-      {showPerkwall && (
-        <PerkwallFrame onClose={() => setShowPerkwall(false)} />
       )}
     </div>
   );

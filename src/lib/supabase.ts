@@ -2,8 +2,8 @@ import { createClient } from '@supabase/supabase-js';
 import type { Database } from './database.types';
 
 // Environment variables with fallbacks for development
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://abrlgsvbyeujzswwuydw.supabase.co';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFicmxnc3ZieWV1anpzd3d1eWR3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA0MzU3NDMsImV4cCI6MjA1NjAxMTc0M30.hyoyNV-ybP84gLTl_6_zScGVeH9HJ97XW1qRAZogr84';
+const supabaseUrl = 'https://abrlgsvbyeujzswwuydw.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFicmxnc3ZieWV1anpzd3d1eWR3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA0MzU3NDMsImV4cCI6MjA1NjAxMTc0M30.hyoyNV-ybP84gLTl_6_zScGVeH9HJ97XW1qRAZogr84';
 
 // Supabase client configuration with optimized settings
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
