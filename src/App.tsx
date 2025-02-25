@@ -6,13 +6,13 @@ import Offerwall from './components/Offerwall';
 import LandingPage from './components/LandingPage';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
+import PublisherPage from './pages/PublisherPage';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Check initial auth state
     supabase.auth.getSession().then(({ data: { session }, error }) => {
       if (error) {
         console.error('Auth error:', error.message);
@@ -21,7 +21,6 @@ function App() {
       setIsAuthenticated(!!session);
     });
 
-    // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -31,7 +30,6 @@ function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Show loading state while checking auth
   if (isAuthenticated === null) {
     return (
       <div className="min-h-screen bg-blue-950 flex items-center justify-center">
@@ -40,7 +38,6 @@ function App() {
     );
   }
 
-  // Show error state if there's an error
   if (error) {
     return (
       <div className="min-h-screen bg-blue-950 flex items-center justify-center">
@@ -65,6 +62,7 @@ function App() {
         <Routes>
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsOfService />} />
+          <Route path="/publishers" element={<PublisherPage />} />
           <Route path="/" element={isAuthenticated ? <Offerwall /> : <LandingPage />} />
         </Routes>
       </div>
@@ -72,4 +70,4 @@ function App() {
   );
 }
 
-export default App
+export default App;

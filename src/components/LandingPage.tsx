@@ -6,6 +6,7 @@ import Reviews from './Reviews';
 import Disclaimer from './Disclaimer';
 import FAQ from './FAQ';
 import LearnMore from './LearnMore';
+import AffiliateSection from './AffiliateSection';
 
 const FEATURED_GAMES = [
   {
@@ -333,6 +334,9 @@ const LandingPage = () => {
         </div>
       </div>
 
+      {/* Affiliate Section */}
+      <AffiliateSection />
+
       {/* Reviews Section */}
       <div id="reviews">
         <Reviews />
@@ -423,6 +427,12 @@ const LandingPage = () => {
                   </Link>
                 </li>
                 <li>
+                  <Link to="/publishers" className="text-white/60 hover:text-white transition-colors flex items-center gap-2">
+                    <Users className="w-4 h-4" />
+                    Become a Partner
+                  </Link>
+                </li>
+                <li>
                   <button 
                     onClick={handleStartEarning}
                     className="text-white/60 hover:text-white transition-colors flex items-center gap-2"
@@ -444,7 +454,7 @@ const LandingPage = () => {
                   </a>
                 </li>
                 <li>
-                  <a href="#contact" className="text-white/60 hover:text-white transition-colors flex items-center gap-2">
+                  <a href="mailto:support@cashiolla.com" className="text-white/60 hover:text-white transition-colors flex items-center gap-2">
                     <Mail className="w-4 h-4" />
                     Contact Us
                   </a>
