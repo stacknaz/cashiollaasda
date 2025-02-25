@@ -73,6 +73,7 @@ const Offerwall = () => {
   const [dailyOffers, setDailyOffers] = useState(0);
   const [streak, setStreak] = useState(0);
   const [showPerkwall, setShowPerkwall] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const totalOffersNeeded = 30;
   const progressPercentage = (completedOffers / totalOffersNeeded) * 100;
 
@@ -256,29 +257,59 @@ const Offerwall = () => {
   };
 
   const renderMobileGamesSection = () => {
-    if (selectedCategory !== 'mobile') return null;
+    if (selectedCategory !== 'mobile' && !showPerkwall) return null;
 
     return (
       <div className="mb-6">
         <div className="bg-gradient-to-br from-purple-500/10 to-purple-600/5 rounded-2xl p-6 border border-purple-500/20">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <div className="bg-purple-500/20 p-3 rounded-lg">
-                <Gamepad className="w-6 h-6 text-purple-400" />
+          {!showPerkwall ? (
+            <>
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="bg-purple-500/20 p-3 rounded-lg">
+                    <Gamepad className="w-6 h-6 text-purple-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-semibold text-white">Featured Mobile Games</h3>
+                    <p className="text-white/80">Complete game offers and earn extra rewards</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowPerkwall(true)}
+                  className="w-full md:w-auto bg-purple-500 hover:bg-purple-600 text-white px-6 py-3 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all"
+                >
+                  View All Games
+                  <ArrowRight className="w-5 h-5" />
+                </button>
               </div>
-              <div>
-                <h3 className="text-xl font-semibold text-white">Featured Mobile Games</h3>
-                <p className="text-white/80">Complete game offers and earn extra rewards</p>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-blue-900/30 p-4 rounded-xl">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Star className="w-5 h-5 text-yellow-400" />
+                    <span className="text-white font-medium">High Payouts</span>
+                  </div>
+                  <p className="text-white/60 text-sm">Earn up to $50 per game completion</p>
+                </div>
+                <div className="bg-blue-900/30 p-4 rounded-xl">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Clock className="w-5 h-5 text-blue-400" />
+                    <span className="text-white font-medium">Quick Rewards</span>
+                  </div>
+                  <p className="text-white/60 text-sm">Most games credit within 24 hours</p>
+                </div>
+                <div className="bg-blue-900/30 p-4 rounded-xl">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Gift className="w-5 h-5 text-purple-400" />
+                    <span className="text-white font-medium">Bonus Points</span>
+                  </div>
+                  <p className="text-white/60 text-sm">Earn extra points for achievements</p>
+                </div>
               </div>
-            </div>
-            <button
-              onClick={() => setShowPerkwall(true)}
-              className="bg-purple-500 hover:bg-purple-600 text-white px-6 py-3 rounded-xl font-semibold flex items-center gap-2 transition-all"
-            >
-              View All Games
-              <ArrowRight className="w-5 h-5" />
-            </button>
-          </div>
+            </>
+          ) : (
+            <PerkwallFrame onClose={() => setShowPerkwall(false)} />
+          )}
         </div>
       </div>
     );
@@ -359,7 +390,7 @@ const Offerwall = () => {
           </div>
 
           {nextLevel && (
-            <div className="flex-1 max-w-md">
+            <div className="flex-1 max-w-md w-full">
               <div className="flex justify-between text-sm mb-2">
                 <span className="text-white/80">Progress to {nextLevel.name}</span>
                 <span className="text-yellow-400">
@@ -402,7 +433,7 @@ const Offerwall = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {DAILY_GOALS.map((goal, index) => {
             const isCompleted = dailyOffers >= goal.offers;
             const progress = Math.min((dailyOffers / goal.offers) * 100, 100);
@@ -416,7 +447,7 @@ const Offerwall = () => {
                 }`}
               >
                 <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3">
                     <div className={`p-2 rounded-lg ${
                       isCompleted ? 'bg-yellow-400/20' : 'bg-blue-900/50'
                     }`}>
@@ -424,21 +455,26 @@ const Offerwall = () => {
                         isCompleted ? 'text-yellow-400' : 'text-white/60'
                       }`} />
                     </div>
-                    <span className="text-white font-medium">
-                      {goal.offers} Offers
-                    </span>
+                    <div>
+                      <span className="text-white font-medium">
+                        {goal.offers} Offers
+                      </span>
+                      <div className="text-sm text-white/60">
+                        {isCompleted ? 'Completed' : `${goal.offers - dailyOffers} more to go`}
+                      </div>
+                    </div>
                   </div>
-                  <span className={`text-sm font-semibold ${
+                  <div className={`text-lg font-semibold ${
                     isCompleted ? 'text-yellow-400' : 'text-white/60'
                   }`}>
                     +${goal.reward}
-                  </span>
+                  </div>
                 </div>
                 <div className="h-2 bg-blue-950/50 rounded-full overflow-hidden">
                   <div
                     className={`h-full transition-all duration-500 ${
                       isCompleted
-                        ? 'bg-yellow-400'
+                        ? 'bg-gradient-to-r from-yellow-400 to-yellow-500'
                         : 'bg-white/20'
                     }`}
                     style={{ width: `${progress}%` }}
@@ -449,7 +485,10 @@ const Offerwall = () => {
                     {Math.min(dailyOffers, goal.offers)}/{goal.offers}
                   </span>
                   {isCompleted && (
-                    <span className="text-yellow-400">Completed!</span>
+                    <span className="text-yellow-400 flex items-center gap-1">
+                      <Trophy className="w-4 h-4" />
+                      Goal Achieved!
+                    </span>
                   )}
                 </div>
               </div>
@@ -465,10 +504,10 @@ const Offerwall = () => {
             <h2 className="text-xl font-semibold text-white mb-2">Available Offers</h2>
             <p className="text-white/80">Choose from our curated selection of high-paying offers</p>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full sm:w-auto">
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className="bg-blue-950/50 hover:bg-blue-950/70 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-all"
+              className="bg-blue-950/50 hover:bg-blue-950/70 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-all"
             >
               <Filter className="w-4 h-4" />
               Filters
@@ -476,7 +515,7 @@ const Offerwall = () => {
             <select
               value={sortOption}
               onChange={(e) => setSortOption(e.target.value)}
-              className="bg-blue-950/50 text-white px-4 py-2 rounded-lg border border-blue-800/30 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+              className="bg-blue-950/50 text-white px-4 py-2 rounded-lg border border-blue-800/30 focus:outline-none focus:ring-2 focus:ring-yellow-400 w-full sm:w-auto"
             >
               {SORT_OPTIONS.map(option => (
                 <option key={option.id} value={option.id}>
@@ -487,8 +526,8 @@ const Offerwall = () => {
           </div>
         </div>
 
-        <div className={`grid grid-cols-1 md:grid-cols-4 gap-4 transition-all duration-300 ${
-          showFilters ? 'opacity-100 max-h-96' : 'opacity-0 max-h-0 overflow-hidden'
+        <div className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 transition-all duration-300 ${
+          showFilters ? 'opacity-100 max-h-[1000px]' : 'opacity-0 max-h-0 overflow-hidden'
         }`}>
           {CATEGORIES.map((category) => {
             const Icon = category.icon;
@@ -496,7 +535,10 @@ const Offerwall = () => {
             return (
               <button
                 key={category.id}
-                onClick={() => setSelectedCategory(category.id)}
+                onClick={() => {
+                  setSelectedCategory(category.id);
+                  setShowFilters(false);
+                }}
                 className={`flex flex-col items-center gap-2 p-4 rounded-xl transition-all ${
                   isActive
                     ? `bg-${category.color} text-blue-950`

@@ -88,7 +88,7 @@ const OfferCard: React.FC<OfferCardProps> = ({
             alt={title} 
             className="w-full h-full object-cover"
             onError={(e) => {
-              e.currentTarget.src = 'https://images.unsplash.com/photo-1579621970588-a35d0e7ab9b6?auto=format&fit=crop&w=800&q=80';
+              e.currentTarget.src = 'https://images.unsplash.com/photo-1579621970588-a35 d0e7ab9b6?auto=format&fit=crop&w=800&q=80';
             }}
           />
           <div className="absolute top-3 right-3 sm:top-4 sm:right-4">
