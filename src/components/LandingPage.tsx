@@ -1,11 +1,56 @@
 import React, { useState, useEffect } from 'react';
-import { Trophy, Users, DollarSign, Zap, Award, Gift, Clock, CheckCircle, ArrowRight, Shield, Mail, Phone, Sparkles, TrendingUp, Star, Lock, FileText, Cookie, MessageSquare } from 'lucide-react';
+import { Trophy, Users, DollarSign, Zap, Award, Gift, Clock, CheckCircle, ArrowRight, Shield, Mail, Phone, Sparkles, TrendingUp, Star, Lock, FileText, Cookie, MessageSquare, Gamepad } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import AuthModal from './auth/AuthModal';
 import Reviews from './Reviews';
 import Disclaimer from './Disclaimer';
 import FAQ from './FAQ';
 import LearnMore from './LearnMore';
+
+const FEATURED_GAMES = [
+  {
+    name: "PUBG Mobile",
+    reward: "$35",
+    image: "https://play-lh.googleusercontent.com/JRd05pyBH41qjgsJuWduRJpDeZG0Hnb0yjf2nWqO7VaGKL10-G5UIygxED-WNOc3pg=w240-h480-rw",
+    description: "Complete level 20 and earn instant rewards",
+    timeRequired: "3-5 days"
+  },
+  {
+    name: "Coin Master",
+    reward: "$25",
+    image: "https://play-lh.googleusercontent.com/lja_bcS9SXsaK4x_q0rXuiqf3CIIwfy8QveRWfW5MEaAPOST_auDLuzWMyMUrBzi0sI=s96-rw",
+    description: "Reach village level 5 to earn",
+    timeRequired: "2-3 days"
+  },
+  {
+    name: "Call of Duty Mobile",
+    reward: "$40",
+    image: "https://play-lh.googleusercontent.com/AtGuphTcfffarHBaw2mn4PHZh6SxSUjbZbSDuL0s_8apx--rXrtu3TNIs43O2_oZCQ=s96-rw",
+    description: "Reach level 15 and complete 10 matches",
+    timeRequired: "4-6 days"
+  },
+  {
+    name: "Clash of Clans",
+    reward: "$30",
+    image: "https://play-lh.googleusercontent.com/LByrur1mTmPeNr0ljI-uAUcct1rzmTve5Esau1SwoAzjBXQUby6uHIfHbF9TAT51mgHm=w240-h480-rw",
+    description: "Upgrade Town Hall to level 5",
+    timeRequired: "3-4 days"
+  },
+  {
+    name: "Travel Town",
+    reward: "$20",
+    image: "https://play-lh.googleusercontent.com/JUd09-Jkgctks6QibZBPeqnpPA-6A6nMXZqAW9Fa0MKOsolbvGKSXEnuq9nxiKNCFVOT=s96-rw",
+    description: "Complete 25 levels to earn",
+    timeRequired: "2-3 days"
+  },
+  {
+    name: "Pokemon GO",
+    reward: "$45",
+    image: "https://play-lh.googleusercontent.com/eftfcMyaaRruAiGPgVZ4rkBsKU_s6qNswWuIOpF7PCNcsd2pY1vhkYnYEKdszfLfTu4=s96-rw",
+    description: "Reach level 10 and catch 50 Pokemon",
+    timeRequired: "5-7 days"
+  }
+];
 
 const LandingPage = () => {
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -210,6 +255,81 @@ const LandingPage = () => {
               </div>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* Featured Games Section */}
+      <div className="py-16 bg-gradient-to-b from-blue-900/20 to-blue-950/20">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center gap-2 bg-purple-500/20 text-purple-400 px-4 py-2 rounded-full text-sm font-semibold mb-4">
+              <Gamepad className="w-4 h-4" />
+              Featured Mobile Games
+            </div>
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+              Play Games and{' '}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-yellow-500">
+                Earn Rewards
+              </span>
+            </h2>
+            <p className="text-white/80 max-w-2xl mx-auto">
+              Complete in-game achievements and earn real money. Start playing today!
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {FEATURED_GAMES.map((game, index) => (
+              <div 
+                key={index}
+                className="bg-gradient-to-br from-blue-900 to-blue-800 rounded-2xl overflow-hidden hover:transform hover:scale-105 transition-all shadow-xl border border-blue-800/30"
+              >
+                <div className="relative h-48">
+                  <img 
+                    src={game.image} 
+                    alt={game.name}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute top-3 right-3">
+                    <span className="bg-yellow-400 text-blue-950 px-4 py-2 rounded-full text-sm font-bold">
+                      {game.reward}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="p-6">
+                  <h3 className="text-xl font-semibold text-white mb-2">{game.name}</h3>
+                  <p className="text-white/80 mb-4">{game.description}</p>
+                  
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center text-white/60">
+                      <Clock className="w-4 h-4 mr-2" />
+                      {game.timeRequired}
+                    </div>
+                    <button 
+                      onClick={handleStartEarning}
+                      className="bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
+                    >
+                      Start Playing
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-12 text-center">
+            <button
+              onClick={handleStartEarning}
+              className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white px-8 py-4 rounded-xl font-bold text-lg inline-flex items-center gap-2 transform hover:scale-105 transition-all shadow-lg"
+            >
+              View All Game Offers
+              <Gamepad className="w-5 h-5" />
+            </button>
+            <p className="text-white/60 text-sm mt-4">
+              New games added daily • Instant rewards upon completion
+            </p>
+          </div>
         </div>
       </div>
 
