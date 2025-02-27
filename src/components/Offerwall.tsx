@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery, useQueryClient } from 'react-query';
-import { Trophy, Menu, X, AlertTriangle, Mail, Phone, ArrowRight, HomeIcon, Star, RefreshCw, Gamepad, MessageSquare, ShoppingBag, Target, Clock, Sparkles, TrendingUp, Filter, Crown, Flame, Gift, Zap, Award } from 'lucide-react';
+import { Trophy, AlertTriangle, RefreshCw, Gamepad, MessageSquare, ShoppingBag, Target, Clock, Filter, Crown, Flame, Gift, Zap, Award, ChevronDown, Search } from 'lucide-react';
 import { fetchOffers, calculateEarningPotential, getOptimalOfferSettings, categorizeOffers } from '../services/offerService';
 import { supabase } from '../lib/supabase';
 import OfferCard from './OfferCard';
 import SettingsPanel from './SettingsPanel';
 import PerkwallFrame from './PerkwallFrame';
+import Notification from './Notification';
 
 const CATEGORIES = [
   {
@@ -72,7 +73,8 @@ const Offerwall = () => {
   const [username, setUsername] = useState('');
   const [dailyOffers, setDailyOffers] = useState(0);
   const [streak, setStreak] = useState(0);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showNotification, setShowNotification] = useState<{message: string, type?: 'success' | 'achievement'} | null>(null);
   const totalOffersNeeded = 30;
   const progressPercentage = (completedOffers / totalOffersNeeded) * 100;
 
@@ -98,15 +100,17 @@ const Offerwall = () => {
       const { data: stats, error: statsError } = await supabase
         .from('user_stats')
         .select('*')
-        .eq('user_id', user.id)
-        .single();
+        .eq('user_id', user.id);
 
       if (statsError) throw statsError;
-
-      setEarned(stats.total_earnings);
-      setCompletedOffers(stats.completed_offers);
-      setDailyOffers(stats.daily_offers);
-      setStreak(stats.streak_days);
+      
+      if (stats && stats.length > 0) {
+        setEarned(stats[0].total_earnings);
+        setCompletedOffers(stats[0].completed_offers);
+        setDailyOffers(stats[0].daily_offers);
+        setStreak(stats[0].streak_days);
+        setUsername(user.user_metadata.username || '');
+      }
 
     } catch (error) {
       console.error('Error fetching user stats:', error);
@@ -172,6 +176,10 @@ const Offerwall = () => {
         refetch()
       ]);
       setTimeLeft(REFRESH_TIME);
+      setShowNotification({
+        message: 'Offers refreshed successfully!',
+        type: 'success'
+      });
     } catch (error) {
       console.error('Error refreshing data:', error);
     } finally {
@@ -206,10 +214,22 @@ const Offerwall = () => {
     });
   };
 
+  const filterOffersBySearch = (offers: any[]) => {
+    if (!searchQuery.trim()) return offers;
+    
+    const query = searchQuery.toLowerCase();
+    return offers.filter(offer => 
+      offer.title.toLowerCase().includes(query) || 
+      offer.description.toLowerCase().includes(query) ||
+      offer.type.toLowerCase().includes(query)
+    );
+  };
+
   const displayedOffers = useMemo(() => {
     const filtered = categorizedOffers[selectedCategory] || [];
-    return sortOffers(filtered);
-  }, [categorizedOffers, selectedCategory, sortOption]);
+    const sorted = sortOffers(filtered);
+    return filterOffersBySearch(sorted);
+  }, [categorizedOffers, selectedCategory, sortOption, searchQuery]);
 
   const totalEarningPotential = calculateEarningPotential(offers);
 
@@ -228,6 +248,12 @@ const Offerwall = () => {
 
       const newCount = (currentOffers?.length || 0) + 1;
       setCompletedOffers(Math.min(newCount, totalOffersNeeded));
+      
+      // Show notification
+      setShowNotification({
+        message: 'Offer started! Complete it to earn rewards.',
+        type: 'success'
+      });
     } catch (error) {
       console.error('Error updating offer progress:', error);
     }
@@ -329,43 +355,89 @@ const Offerwall = () => {
 
   return (
     <div className="container mx-auto px-4 py-8 space-y-8">
+      {/* User Welcome Banner */}
+      <div className="bg-gradient-to-r from-blue-900 to-blue-800 rounded-xl p-6 shadow-lg">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-gradient-to-r from-yellow-400 to-yellow-500 flex items-center justify-center text-blue-950 text-xl font-bold">
+              {username.charAt(0).toUpperCase() || 'U'}
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-white">Welcome back, {username || 'User'}!</h1>
+              <p className="text-white/80">Ready to earn rewards today?</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowSettings(true)}
+              className="bg-blue-800/50 hover:bg-blue-800/70 text-white px-4 py-2 rounded-lg transition-colors"
+            >
+              My Account
+            </button>
+            <button
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="bg-yellow-400 hover:bg-yellow-500 text-blue-950 px-4 py-2 rounded-lg font-semibold flex items-center gap-2 transition-colors disabled:opacity-50"
+            >
+              {isRefreshing ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  Refreshing...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="w-4 h-4" />
+                  Refresh Offers
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Quick Stats Bar */}
-      <div className="bg-gradient-to-r from-blue-900 to-blue-800 rounded-xl p-4 shadow-lg">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-gradient-to-br from-blue-900 to-blue-800 rounded-xl p-4 shadow-lg transform hover:scale-105 transition-all">
           <div className="flex items-center gap-3">
             <div className="bg-yellow-400/20 p-2 rounded-lg">
               <Trophy className="w-5 h-5 text-yellow-400" />
             </div>
             <div>
               <p className="text-white/60 text-sm">Total Earned</p>
-              <p className="text-white font-semibold">${earned.toFixed(2)}</p>
+              <p className="text-white font-semibold text-lg">${earned.toFixed(2)}</p>
             </div>
           </div>
+        </div>
+        <div className="bg-gradient-to-br from-blue-900 to-blue-800 rounded-xl p-4 shadow-lg transform hover:scale-105 transition-all">
           <div className="flex items-center gap-3">
             <div className="bg-purple-400/20 p-2 rounded-lg">
               <Flame className="w-5 h-5 text-purple-400" />
             </div>
             <div>
               <p className="text-white/60 text-sm">Daily Streak</p>
-              <p className="text-white font-semibold">{streak} Days</p>
+              <p className="text-white font-semibold text-lg">{streak} Days</p>
             </div>
           </div>
+        </div>
+        <div className="bg-gradient-to-br from-blue-900 to-blue-800 rounded-xl p-4 shadow-lg transform hover:scale-105 transition-all">
           <div className="flex items-center gap-3">
             <div className="bg-green-400/20 p-2 rounded-lg">
               <Target className="w-5 h-5 text-green-400" />
             </div>
             <div>
               <p className="text-white/60 text-sm">Today's Offers</p>
-              <p className="text-white font-semibold">{dailyOffers} Completed</p>
+              <p className="text-white font-semibold text-lg">{dailyOffers} Completed</p>
             </div>
           </div>
+        </div>
+        <div className="bg-gradient-to-br from-blue-900 to-blue-800 rounded-xl p-4 shadow-lg transform hover:scale-105 transition-all">
           <div className="flex items-center gap-3">
             <div className="bg-blue-400/20 p-2 rounded-lg">
               <Clock className="w-5 h-5 text-blue-400" />
             </div>
             <div>
               <p className="text-white/60 text-sm">Next Refresh</p>
-              <p className="text-white font-semibold">{formatTimeLeft(timeLeft)}</p>
+              <p className="text-white font-semibold text-lg">{formatTimeLeft(timeLeft)}</p>
             </div>
           </div>
         </div>
@@ -510,40 +582,41 @@ const Offerwall = () => {
             <p className="text-white/80">Choose from our curated selection of high-paying offers</p>
           </div>
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full sm:w-auto">
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className="bg-blue-950/50 hover:bg-blue-950/70 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-all"
-            >
-              <Filter className="w-4 h-4" />
-              Filters
-            </button>
-            <select
-              value={sortOption}
-              onChange={(e) => setSortOption(e.target.value)}
-              className="bg-blue-950/50 text-white px-4 py-2 rounded-lg border border-blue-800/30 focus:outline-none focus:ring-2 focus:ring-yellow-400 w-full sm:w-auto"
-            >
-              {SORT_OPTIONS.map(option => (
-                <option key={option.id} value={option.id}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-white/40" />
+              <input
+                type="text"
+                placeholder="Search offers..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="bg-blue-950/50 text-white pl-10 pr-4 py-2 rounded-lg border border-blue-800/30 focus:outline-none focus:ring-2 focus:ring-yellow-400 w-full"
+              />
+            </div>
+            <div className="relative">
+              <select
+                value={sortOption}
+                onChange={(e) => setSortOption(e.target.value)}
+                className="bg-blue-950/50 text-white px-4 py-2 rounded-lg border border-blue-800/30 focus:outline-none focus:ring-2 focus:ring-yellow-400 w-full sm:w-auto appearance-none pr-10"
+              >
+                {SORT_OPTIONS.map(option => (
+                  <option key={option.id} value={option.id}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-white/40 pointer-events-none" />
+            </div>
           </div>
         </div>
 
-        <div className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 transition-all duration-300 ${
-          showFilters ? 'opacity-100 max-h-[1000px]' : 'opacity-0 max-h-0 overflow-hidden'
-        }`}>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {CATEGORIES.map((category) => {
             const Icon = category.icon;
             const isActive = selectedCategory === category.id;
             return (
               <button
                 key={category.id}
-                onClick={() => {
-                  setSelectedCategory(category.id);
-                  setShowFilters(false);
-                }}
+                onClick={() => setSelectedCategory(category.id)}
                 className={`flex flex-col items-center gap-2 p-4 rounded-xl transition-all ${
                   isActive
                     ? `bg-${category.color} text-blue-950`
@@ -553,7 +626,6 @@ const Offerwall = () => {
                 <Icon className="w-6 h-6" />
                 <span className="font-medium">{category.name}</span>
                 <span className="text-sm opacity-80">{categorizedOffers[category.id]?.length || 0} offers</span>
-                <p className="text-xs text-center opacity-70">{category.description}</p>
               </button>
             );
           })}
@@ -597,24 +669,22 @@ const Offerwall = () => {
               </div>
               <h3 className="text-xl font-semibold text-white mb-2">No Offers Available</h3>
               <p className="text-white/80 max-w-md mx-auto">
-                There are currently no offers in this category. Please check back later or try a different category.
+                {searchQuery ? 
+                  `No offers match your search for "${searchQuery}". Try different keywords or clear your search.` :
+                  'There are currently no offers in this category. Please check back later or try a different category.'}
               </p>
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="mt-4 bg-blue-900/50 hover:bg-blue-900/70 text-white px-4 py-2 rounded-lg transition-colors"
+                >
+                  Clear Search
+                </button>
+              )}
             </div>
           )}
         </>
       )}
-
-      {/* Refresh Button */}
-      <div className="flex justify-center mt-8">
-        <button
-          onClick={handleRefresh}
-          disabled={isRefreshing}
-          className="bg-gradient-to-r from-blue-900 to-blue-800 hover:from-blue-800 hover:to-blue-700 text-white px-8 py-3 rounded-lg flex items-center gap-2 transition-all disabled:opacity-50 shadow-lg"
-        >
-          <RefreshCw className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} />
-          {isRefreshing ? 'Refreshing...' : 'Refresh Offers'}
-        </button>
-      </div>
 
       {/* Settings Panel */}
       {showSettings && (
@@ -629,6 +699,15 @@ const Offerwall = () => {
             dailyOffers,
             streak
           }}
+        />
+      )}
+
+      {/* Notification */}
+      {showNotification && (
+        <Notification
+          message={showNotification.message}
+          type={showNotification.type}
+          onClose={() => setShowNotification(null)}
         />
       )}
     </div>

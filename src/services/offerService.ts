@@ -19,7 +19,7 @@ export interface OfferItem {
   type: string;
   photo: string;
   points: number;
-  difficulty?: 'Easy' | 'Medium' | 'Hard';
+  difficulty?: 'Easy' | 'Medium';
   offer_id?: string;
 }
 
@@ -112,11 +112,9 @@ const validateOffer = (offer: any): boolean => {
 };
 
 // Update the getDifficulty function
-const getDifficulty = (conversion: string): 'Easy' | 'Medium' | 'Hard' => {
+const getDifficulty = (conversion: string): 'Easy' | 'Medium' => {
   const convRate = parseFloat(conversion);
-  if (convRate > 0.3) return 'Easy';
-  if (convRate > 0.1) return 'Medium';
-  return 'Hard';
+  return convRate > 0.3 ? 'Easy' : 'Medium';
 };
 
 export const formatPoints = (points: number): string => {
@@ -156,8 +154,7 @@ export const trackOfferClick = async (offer: OfferItem) => {
               userAgent,
               ip: userIp,
               platform: navigator.platform,
-              language: navigator.language,
-              difficulty: offer.difficulty
+              language: navigator.language
             },
             category: offer.category,
             points: offer.points

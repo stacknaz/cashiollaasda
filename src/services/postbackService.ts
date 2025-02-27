@@ -13,7 +13,7 @@ export interface PostbackData {
 }
 
 const POSTBACK_PASSWORD = '7839877';
-const POSTBACK_DOMAIN = 'https://cashiolla-rewards.netlify.app';
+const POSTBACK_DOMAIN = 'https://app.winappio.com';
 
 export const validatePostbackPassword = (password: string): boolean => {
   return password === POSTBACK_PASSWORD;
@@ -75,36 +75,6 @@ export const processPostback = async (data: PostbackData) => {
 
     if (processError) {
       throw processError;
-    }
-
-    // Update offer click status
-    const { error: updateClickError } = await supabase
-      .from('offer_clicks')
-      .update({
-        status: 'completed',
-        completed_at: new Date().toISOString(),
-        postback_received: true,
-        postback_amount: data.payout || offerClick.reward
-      })
-      .eq('id', data.click_id);
-
-    if (updateClickError) {
-      console.error('Error updating offer click:', updateClickError);
-    }
-
-    // Update user stats
-    const { error: statsError } = await supabase
-      .from('user_stats')
-      .update({
-        total_earnings: supabase.rpc('increment', { x: data.payout || offerClick.reward }),
-        completed_offers: supabase.rpc('increment', { x: 1 }),
-        daily_offers: supabase.rpc('increment', { x: 1 }),
-        updated_at: new Date().toISOString()
-      })
-      .eq('user_id', offerClick.user_id);
-
-    if (statsError) {
-      console.error('Error updating user stats:', statsError);
     }
 
     // Broadcast completion event

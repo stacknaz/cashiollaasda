@@ -21,7 +21,6 @@ export default defineConfig({
           vendor: ['react', 'react-dom', 'react-query'],
           ui: ['lucide-react'],
           auth: ['@supabase/supabase-js'],
-          browser: ['react-router-dom']
         },
       },
     },
