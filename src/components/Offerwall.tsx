@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery, useQueryClient } from 'react-query';
-import { Trophy, AlertTriangle, RefreshCw, Gamepad, MessageSquare, ShoppingBag, Target, Clock, Filter, Crown, Flame, Gift, Zap, Award, ChevronDown, Search } from 'lucide-react';
+import { Trophy, Menu, X, AlertTriangle, Mail, Phone, ArrowRight, HomeIcon, Star, RefreshCw, Gamepad, MessageSquare, ShoppingBag, Target, Clock, Sparkles, TrendingUp, Filter, Crown, Flame, Gift, Zap, Award, Search, ChevronDown } from 'lucide-react';
 import { fetchOffers, calculateEarningPotential, getOptimalOfferSettings, categorizeOffers } from '../services/offerService';
 import { supabase } from '../lib/supabase';
 import OfferCard from './OfferCard';
 import SettingsPanel from './SettingsPanel';
 import PerkwallFrame from './PerkwallFrame';
 import Notification from './Notification';
+import { trackEvent, TrackingEventType } from '../lib/offer18';
 
 const CATEGORIES = [
   {
@@ -73,6 +74,7 @@ const Offerwall = () => {
   const [username, setUsername] = useState('');
   const [dailyOffers, setDailyOffers] = useState(0);
   const [streak, setStreak] = useState(0);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showNotification, setShowNotification] = useState<{message: string, type?: 'success' | 'achievement'} | null>(null);
   const totalOffersNeeded = 30;
@@ -100,17 +102,16 @@ const Offerwall = () => {
       const { data: stats, error: statsError } = await supabase
         .from('user_stats')
         .select('*')
-        .eq('user_id', user.id);
+        .eq('user_id', user.id)
+        .single();
 
       if (statsError) throw statsError;
-      
-      if (stats && stats.length > 0) {
-        setEarned(stats[0].total_earnings);
-        setCompletedOffers(stats[0].completed_offers);
-        setDailyOffers(stats[0].daily_offers);
-        setStreak(stats[0].streak_days);
-        setUsername(user.user_metadata.username || '');
-      }
+
+      setEarned(stats.total_earnings);
+      setCompletedOffers(stats.completed_offers);
+      setDailyOffers(stats.daily_offers);
+      setStreak(stats.streak_days);
+      setUsername(user.user_metadata.username || '');
 
     } catch (error) {
       console.error('Error fetching user stats:', error);
@@ -214,6 +215,42 @@ const Offerwall = () => {
     });
   };
 
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    
+    // Track search event
+    trackEvent(TrackingEventType.CLICK, {
+      custom_data: {
+        action: 'search',
+        search_query: query
+      }
+    });
+  };
+
+  const handleSortChange = (option: string) => {
+    setSortOption(option);
+    
+    // Track sort event
+    trackEvent(TrackingEventType.CLICK, {
+      custom_data: {
+        action: 'sort',
+        sort_option: option
+      }
+    });
+  };
+
+  const handleCategoryChange = (category: string) => {
+    setSelectedCategory(category);
+    
+    // Track category change event
+    trackEvent(TrackingEventType.CLICK, {
+      custom_data: {
+        action: 'category_change',
+        category
+      }
+    });
+  };
+
   const filterOffersBySearch = (offers: any[]) => {
     if (!searchQuery.trim()) return offers;
     
@@ -226,7 +263,7 @@ const Offerwall = () => {
   };
 
   const displayedOffers = useMemo(() => {
-    const filtered = categorizedOffers[selectedCategory] || [];
+    const filtered = categorizedOffers[selectedCategory as keyof typeof categorizedOffers] || [];
     const sorted = sortOffers(filtered);
     return filterOffersBySearch(sorted);
   }, [categorizedOffers, selectedCategory, sortOption, searchQuery]);
@@ -360,10 +397,10 @@ const Offerwall = () => {
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-full bg-gradient-to-r from-yellow-400 to-yellow-500 flex items-center justify-center text-blue-950 text-xl font-bold">
-              {username.charAt(0).toUpperCase() || 'U'}
+              {username.charAt(0).toUpperCase()}
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-white">Welcome back, {username || 'User'}!</h1>
+              <h1 className="text-2xl font-bold text-white">Welcome back, {username}!</h1>
               <p className="text-white/80">Ready to earn rewards today?</p>
             </div>
           </div>
@@ -588,14 +625,14 @@ const Offerwall = () => {
                 type="text"
                 placeholder="Search offers..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => handleSearch(e.target.value)}
                 className="bg-blue-950/50 text-white pl-10 pr-4 py-2 rounded-lg border border-blue-800/30 focus:outline-none focus:ring-2 focus:ring-yellow-400 w-full"
               />
             </div>
             <div className="relative">
               <select
                 value={sortOption}
-                onChange={(e) => setSortOption(e.target.value)}
+                onChange={(e) => handleSortChange(e.target.value)}
                 className="bg-blue-950/50 text-white px-4 py-2 rounded-lg border border-blue-800/30 focus:outline-none focus:ring-2 focus:ring-yellow-400 w-full sm:w-auto appearance-none pr-10"
               >
                 {SORT_OPTIONS.map(option => (
@@ -616,7 +653,7 @@ const Offerwall = () => {
             return (
               <button
                 key={category.id}
-                onClick={() => setSelectedCategory(category.id)}
+                onClick={() => handleCategoryChange(category.id)}
                 className={`flex flex-col items-center gap-2 p-4 rounded-xl transition-all ${
                   isActive
                     ? `bg-${category.color} text-blue-950`
@@ -691,14 +728,6 @@ const Offerwall = () => {
         <SettingsPanel
           isOpen={showSettings}
           onClose={() => setShowSettings(false)}
-          stats={{
-            earned,
-            completedOffers,
-            totalOffersNeeded,
-            username,
-            dailyOffers,
-            streak
-          }}
         />
       )}
 

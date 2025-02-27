@@ -14,19 +14,20 @@ export default defineConfig({
   },
   build: {
     minify: 'terser',
-    sourcemap: process.env.NODE_ENV !== 'production',
+    sourcemap: false,
     rollupOptions: {
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-query'],
           ui: ['lucide-react'],
           auth: ['@supabase/supabase-js'],
+          browser: ['axios', 'react-router-dom']
         },
       },
     },
     terserOptions: {
       compress: {
-        drop_console: process.env.NODE_ENV === 'production',
+        drop_console: true,
         drop_debugger: true
       }
     }

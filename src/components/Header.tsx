@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Trophy, Menu, X, HomeIcon, Bell, Settings, MessageSquare, Star, User, BookOpen } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Trophy, Menu, X, HomeIcon, Bell, Settings, MessageSquare, Star, User, BookOpen, LogOut } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import AuthModal from './auth/AuthModal';
 import SettingsPanel from './SettingsPanel';
 import LearnHowToEarn from './LearnHowToEarn';
+import { trackEvent, TrackingEventType } from '../lib/offer18';
 
 interface HeaderProps {
   isAuthenticated: boolean;
@@ -16,8 +17,36 @@ const Header: React.FC<HeaderProps> = ({ isAuthenticated }) => {
   const [showSettings, setShowSettings] = useState(false);
   const [showLearnModal, setShowLearnModal] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    try {
+      // Track logout event
+      trackEvent(TrackingEventType.CLICK, {
+        custom_data: {
+          action: 'logout',
+          page: location.pathname
+        }
+      });
+      
+      await supabase.auth.signOut();
+      // Redirect to home page after logout
+      navigate('/');
+    } catch (error) {
+      // Silent error handling in production
+    }
+  };
 
   const scrollToSection = (id: string) => {
+    // Track navigation event
+    trackEvent(TrackingEventType.CLICK, {
+      custom_data: {
+        action: 'navigation',
+        target: id,
+        page: location.pathname
+      }
+    });
+    
     // If we're not on the home page, navigate there first
     if (location.pathname !== '/') {
       window.location.href = `/#${id}`;
@@ -29,6 +58,18 @@ const Header: React.FC<HeaderProps> = ({ isAuthenticated }) => {
       element.scrollIntoView({ behavior: 'smooth' });
       setIsMenuOpen(false);
     }
+  };
+
+  const handleShowAuthModal = () => {
+    // Track auth modal open event
+    trackEvent(TrackingEventType.CLICK, {
+      custom_data: {
+        action: 'open_auth_modal',
+        page: location.pathname
+      }
+    });
+    
+    setShowAuthModal(true);
   };
 
   return (
@@ -82,6 +123,15 @@ const Header: React.FC<HeaderProps> = ({ isAuthenticated }) => {
                 >
                   <Settings className="w-5 h-5" />
                 </button>
+
+                {/* Logout Button */}
+                <button 
+                  onClick={handleLogout}
+                  className="bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 px-3 py-1 rounded-lg transition-colors flex items-center gap-2"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span>Logout</span>
+                </button>
               </>
             ) : (
               <div className="flex items-center space-x-6">
@@ -107,7 +157,7 @@ const Header: React.FC<HeaderProps> = ({ isAuthenticated }) => {
                   Reviews
                 </button>
                 <button
-                  onClick={() => setShowAuthModal(true)}
+                  onClick={handleShowAuthModal}
                   className="bg-yellow-400 hover:bg-yellow-500 text-blue-950 px-4 py-2 rounded-lg font-semibold transition-colors flex items-center gap-2"
                 >
                   <User className="w-4 h-4" />
@@ -177,6 +227,18 @@ const Header: React.FC<HeaderProps> = ({ isAuthenticated }) => {
                 >
                   <Settings className="w-5 h-5" />
                   <span>Settings</span>
+                </button>
+
+                {/* Mobile Logout */}
+                <button 
+                  onClick={() => {
+                    handleLogout();
+                    setIsMenuOpen(false);
+                  }}
+                  className="flex items-center space-x-3 w-full text-red-400 hover:text-red-300 py-3 px-4 rounded-lg bg-red-500/10 hover:bg-red-500/20"
+                >
+                  <LogOut className="w-5 h-5" />
+                  <span>Logout</span>
                 </button>
               </>
             ) : (

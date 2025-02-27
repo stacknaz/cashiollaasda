@@ -1,6 +1,7 @@
 import { supabase } from '../lib/supabase';
 import axios from 'axios';
 import { getPostbackUrl } from './postbackService';
+import { trackOfferClick, trackOfferImpression } from '../lib/offer18';
 
 const BASE_URL = 'https://www.cpagrip.com';
 const TRACKING_DOMAIN = 'motifiles.com';
@@ -39,7 +40,6 @@ const getUserIP = async () => {
     const response = await axios.get('https://api.ipify.org?format=json');
     return response.data.ip;
   } catch (error) {
-    console.error('Error fetching IP:', error);
     return null;
   }
 };
@@ -121,7 +121,7 @@ export const formatPoints = (points: number): string => {
   return new Intl.NumberFormat().format(points);
 };
 
-export const trackOfferClick = async (offer: OfferItem) => {
+export const trackOfferClickEvent = async (offer: OfferItem) => {
   try {
     const { data: { user } } = await supabase.auth.getUser();
     const userIp = await getUserIP();
@@ -131,7 +131,6 @@ export const trackOfferClick = async (offer: OfferItem) => {
     // Extract offer ID from the link
     const offerId = extractOfferId(offer.link);
     if (!offerId) {
-      console.error('No offer ID found:', offer);
       return null;
     }
 
@@ -151,7 +150,6 @@ export const trackOfferClick = async (offer: OfferItem) => {
             original_link: offer.link,
             status: 'clicked',
             device_info: {
-              userAgent,
               ip: userIp,
               platform: navigator.platform,
               language: navigator.language
@@ -161,6 +159,21 @@ export const trackOfferClick = async (offer: OfferItem) => {
           });
 
         if (insertError) throw insertError;
+
+        // Track with Offer18 - wrapped in try/catch to prevent errors
+        try {
+          trackOfferClick(offerId, clickId, {
+            user_id: user.id,
+            custom_data: {
+              offer_title: offer.title,
+              offer_type: offer.type,
+              reward: offer.reward,
+              country: offer.country
+            }
+          });
+        } catch (trackError) {
+          // Silent error handling
+        }
 
         // Generate postback URL with all required parameters
         const postbackUrl = getPostbackUrl(clickId);
@@ -185,14 +198,12 @@ export const trackOfferClick = async (offer: OfferItem) => {
         // Return the final tracking URL
         return `${offer.link}&${params.toString()}`;
       } catch (error) {
-        console.error('Error tracking offer click in Supabase:', error);
         return null;
       }
     }
 
     return offer.link;
   } catch (error) {
-    console.error('Error in trackOfferClick:', error);
     return null;
   }
 };
@@ -226,11 +237,10 @@ export const fetchOffers = async (options: OfferFeedOptions = {}): Promise<Offer
     });
 
     if (!response.data || !response.data.offers) {
-      console.error('Invalid response format:', response.data);
       return [];
     }
 
-    return response.data.offers
+    const offers = response.data.offers
       .filter((offer: any) => validateOffer(offer))
       .map((offer: any) => {
         const reward = sanitizeNumber(offer.payout);
@@ -254,8 +264,34 @@ export const fetchOffers = async (options: OfferFeedOptions = {}): Promise<Offer
         };
       })
       .filter(offer => offer.offer_id && offer.link);
+      
+    // Track impressions for all offers - wrapped in try/catch to prevent errors
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        offers.forEach(offer => {
+          if (offer.offer_id) {
+            try {
+              trackOfferImpression(offer.offer_id, {
+                user_id: user.id,
+                custom_data: {
+                  offer_title: offer.title,
+                  offer_type: offer.type,
+                  reward: offer.reward
+                }
+              });
+            } catch (trackError) {
+              // Silent error handling
+            }
+          }
+        });
+      }
+    } catch (error) {
+      // Silent error handling
+    }
+    
+    return offers;
   } catch (error) {
-    console.error('Error fetching offers:', error);
     return [];
   }
 };

@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import App from './App.tsx';
 import './index.css';
+import { initOffer18Tracking } from './lib/offer18.ts';
 
 // Configure React Query with proper error handling
 const queryClient = new QueryClient({
@@ -14,14 +15,18 @@ const queryClient = new QueryClient({
       cacheTime: 3600000, // 1 hour
       refetchOnMount: false,
       onError: (error) => {
-        // Properly handle query errors
-        console.error('Query error:', error);
+        // Only log errors in development
+        if (process.env.NODE_ENV !== 'production') {
+          console.error('Query error:', error);
+        }
       },
       initialData: () => undefined // Prevent empty object initialization
     },
     mutations: {
       onError: (error) => {
-        console.error('Mutation error:', error);
+        if (process.env.NODE_ENV !== 'production') {
+          console.error('Mutation error:', error);
+        }
       }
     }
   },
@@ -34,13 +39,28 @@ const handleError = (event: ErrorEvent) => {
     return false;
   }
   
-  // Log other errors properly
-  if (!event.message.includes('[{}]')) {
+  // Ignore empty object errors
+  if (event.message === '[{}]') {
+    event.stopImmediatePropagation();
+    return false;
+  }
+  
+  // Log other errors only in development
+  if (!event.message.includes('[{}]') && process.env.NODE_ENV !== 'production') {
     console.error('Application error:', event.error);
   }
 };
 
 window.addEventListener('error', handleError);
+
+// Initialize tracking with error handling
+try {
+  setTimeout(() => {
+    initOffer18Tracking();
+  }, 1000);
+} catch (error) {
+  // Silent error handling
+}
 
 // Initialize app with error boundary
 const root = document.getElementById('root');

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Timer, Star, Globe, ArrowRight, Gift } from 'lucide-react';
-import { formatPoints, trackOfferClick } from '../services/offerService';
+import { formatPoints, trackOfferClickEvent } from '../services/offerService';
 import type { OfferItem } from '../services/offerService';
 import OfferModal from './OfferModal';
 import Notification from './Notification';
+import { trackOfferImpression } from '../lib/offer18';
 
 interface OfferCardProps extends OfferItem {
   onStart: () => void;
@@ -20,6 +21,7 @@ const OfferCard: React.FC<OfferCardProps> = ({
   conversion,
   link,
   difficulty = 'Easy',
+  offer_id,
   onStart
 }) => {
   const [showModal, setShowModal] = useState(false);
@@ -28,6 +30,25 @@ const OfferCard: React.FC<OfferCardProps> = ({
   const [showNotification, setShowNotification] = useState(false);
 
   useEffect(() => {
+    // Track impression when card is rendered
+    if (offer_id) {
+      try {
+        trackOfferImpression(offer_id, {
+          custom_data: {
+            offer_title: title,
+            offer_type: type,
+            reward: reward
+          }
+        }).catch(err => {
+          // Silently handle tracking errors
+          console.log('Offer impression tracking error handled');
+        });
+      } catch (error) {
+        // Silently handle tracking errors
+        console.log('Offer impression tracking error handled');
+      }
+    }
+    
     // Listen for offer completion events
     const handleOfferComplete = (event: MessageEvent) => {
       if (event.data?.type === 'offerCompleted' && event.data?.offerId === link) {
@@ -38,7 +59,7 @@ const OfferCard: React.FC<OfferCardProps> = ({
 
     window.addEventListener('message', handleOfferComplete);
     return () => window.removeEventListener('message', handleOfferComplete);
-  }, [link, onStart]);
+  }, [link, onStart, offer_id, title, type, reward]);
 
   const handleStartOffer = async (e?: React.MouseEvent) => {
     if (e) {
@@ -49,7 +70,7 @@ const OfferCard: React.FC<OfferCardProps> = ({
       setIsLoading(true);
       setError(null);
       
-      const trackedLink = await trackOfferClick({
+      const trackedLink = await trackOfferClickEvent({
         title,
         description,
         reward,
@@ -61,7 +82,8 @@ const OfferCard: React.FC<OfferCardProps> = ({
         link,
         difficulty,
         pubDate: new Date().toISOString(),
-        category: type
+        category: type,
+        offer_id
       });
 
       if (!trackedLink) {
@@ -170,6 +192,7 @@ const OfferCard: React.FC<OfferCardProps> = ({
             conversion,
             link,
             difficulty,
+            offer_id,
             onClose: () => setShowModal(false),
             onStart: handleStartOffer
           }}

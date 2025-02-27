@@ -55,7 +55,7 @@ export const processPostback = async (data: PostbackData) => {
     });
 
     if (updateError) {
-      console.error('Error updating user metadata:', updateError);
+      // Silent error handling in production
     }
 
     // Process the completed offer
@@ -87,7 +87,6 @@ export const processPostback = async (data: PostbackData) => {
 
     return completedOffer;
   } catch (error) {
-    console.error('Error processing postback:', error);
     throw error;
   }
 };

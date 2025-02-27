@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
-import { X, Trophy, Target, Clock, TrendingUp, Bell, Shield, User, BarChart2, Gift, Crown, Flame, Award, Zap, Star } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Trophy, Target, Clock, TrendingUp, Bell, Shield, User, BarChart2, Gift, Crown, Flame, Award, Zap, Star, LogOut } from 'lucide-react';
 import ProfilePanel from './ProfilePanel';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
 
 interface SettingsPanelProps {
   isOpen: boolean;
   onClose: () => void;
-  stats: {
+  stats?: {
     earned: number;
     completedOffers: number;
     totalOffersNeeded: number;
@@ -27,20 +29,67 @@ const DAILY_GOALS = [
   { offers: 10, reward: 25, icon: Gift }
 ];
 
-const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose, stats }) => {
+const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose }) => {
   const [showProfile, setShowProfile] = useState(false);
   const [activeTab, setActiveTab] = useState<'progress' | 'achievements' | 'settings'>('progress');
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const navigate = useNavigate();
+  const [userStats, setUserStats] = useState({
+    earned: 0,
+    completedOffers: 0,
+    totalOffersNeeded: 30,
+    username: '',
+    dailyOffers: 0,
+    streak: 0
+  });
+
+  useEffect(() => {
+    const fetchUserStats = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data: stats, error: statsError } = await supabase
+          .from('user_stats')
+          .select('*')
+          .eq('user_id', user.id);
+
+        if (statsError) throw statsError;
+
+        if (stats && stats.length > 0) {
+          setUserStats({
+            earned: stats[0].total_earnings || 0,
+            completedOffers: stats[0].completed_offers || 0,
+            totalOffersNeeded: 30,
+            username: user.user_metadata.username || '',
+            dailyOffers: stats[0].daily_offers || 0,
+            streak: stats[0].streak_days || 0
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching user stats:', error);
+      }
+    };
+
+    if (isOpen) {
+      fetchUserStats();
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
-  // Ensure stats have default values to prevent undefined errors
-  const safeStats = {
-    earned: stats?.earned || 0,
-    completedOffers: stats?.completedOffers || 0,
-    totalOffersNeeded: stats?.totalOffersNeeded || 30,
-    username: stats?.username || 'User',
-    dailyOffers: stats?.dailyOffers || 0,
-    streak: stats?.streak || 0
+  const handleLogout = async () => {
+    try {
+      setIsLoggingOut(true);
+      await supabase.auth.signOut();
+      onClose();
+      // Redirect to home page after logout
+      navigate('/');
+    } catch (error) {
+      console.error('Error logging out:', error);
+    } finally {
+      setIsLoggingOut(false);
+    }
   };
 
   const getCurrentLevel = (completedOffers: number) => {
@@ -61,26 +110,26 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose, stats })
     return null;
   };
 
-  const currentLevel = getCurrentLevel(safeStats.completedOffers);
-  const nextLevel = getNextLevel(safeStats.completedOffers);
+  const currentLevel = getCurrentLevel(userStats.completedOffers);
+  const nextLevel = getNextLevel(userStats.completedOffers);
   const progressToNextLevel = nextLevel
-    ? ((safeStats.completedOffers % nextLevel.threshold) / nextLevel.threshold) * 100
+    ? ((userStats.completedOffers % nextLevel.threshold) / nextLevel.threshold) * 100
     : 100;
 
   const getDailyGoalProgress = () => {
     for (const goal of DAILY_GOALS) {
-      if (safeStats.dailyOffers < goal.offers) {
+      if (userStats.dailyOffers < goal.offers) {
         return {
-          current: safeStats.dailyOffers,
+          current: userStats.dailyOffers,
           target: goal.offers,
           reward: goal.reward,
           icon: goal.icon,
-          progress: (safeStats.dailyOffers / goal.offers) * 100
+          progress: (userStats.dailyOffers / goal.offers) * 100
         };
       }
     }
     return {
-      current: safeStats.dailyOffers,
+      current: userStats.dailyOffers,
       target: DAILY_GOALS[DAILY_GOALS.length - 1].offers,
       reward: DAILY_GOALS[DAILY_GOALS.length - 1].reward,
       icon: DAILY_GOALS[DAILY_GOALS.length - 1].icon,
@@ -106,12 +155,12 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose, stats })
             <div className="text-center mb-6 relative">
               <div className="absolute top-0 right-0 flex items-center gap-2 bg-blue-900/50 px-3 py-1 rounded-full">
                 <Star className="w-4 h-4 text-yellow-400" />
-                <span className="text-white/80 text-sm">Level {Math.floor(safeStats.completedOffers / 30) + 1}</span>
+                <span className="text-white/80 text-sm">Level {Math.floor(userStats.completedOffers / 30) + 1}</span>
               </div>
               <div className="w-20 h-20 rounded-full bg-gradient-to-r from-yellow-400 to-yellow-500 flex items-center justify-center text-blue-950 text-3xl font-bold mb-4 mx-auto ring-4 ring-yellow-400/20">
-                {safeStats.username.charAt(0).toUpperCase()}
+                {userStats.username.charAt(0).toUpperCase() || 'U'}
               </div>
-              <h2 className="text-2xl font-bold text-white mb-2">Welcome, {safeStats.username}</h2>
+              <h2 className="text-2xl font-bold text-white mb-2">Welcome, {userStats.username || 'User'}</h2>
               <p className="text-white/60">Track your progress and manage settings</p>
             </div>
 
@@ -120,22 +169,22 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose, stats })
               <div className="bg-gradient-to-br from-blue-900/50 to-blue-800/50 rounded-xl p-4 text-center transform hover:scale-105 transition-all">
                 <Trophy className="w-6 h-6 text-yellow-400 mx-auto mb-2" />
                 <div className="text-sm text-white/60">Total Earned</div>
-                <div className="text-lg font-bold text-white">${safeStats.earned.toFixed(2)}</div>
+                <div className="text-lg font-bold text-white">${userStats.earned.toFixed(2)}</div>
               </div>
               <div className="bg-gradient-to-br from-blue-900/50 to-blue-800/50 rounded-xl p-4 text-center transform hover:scale-105 transition-all">
                 <Target className="w-6 h-6 text-green-400 mx-auto mb-2" />
                 <div className="text-sm text-white/60">Completed</div>
-                <div className="text-lg font-bold text-white">{safeStats.completedOffers}</div>
+                <div className="text-lg font-bold text-white">{userStats.completedOffers}</div>
               </div>
               <div className="bg-gradient-to-br from-blue-900/50 to-blue-800/50 rounded-xl p-4 text-center transform hover:scale-105 transition-all">
                 <Flame className="w-6 h-6 text-purple-400 mx-auto mb-2" />
                 <div className="text-sm text-white/60">Daily Streak</div>
-                <div className="text-lg font-bold text-white">{safeStats.streak} Days</div>
+                <div className="text-lg font-bold text-white">{userStats.streak} Days</div>
               </div>
               <div className="bg-gradient-to-br from-blue-900/50 to-blue-800/50 rounded-xl p-4 text-center transform hover:scale-105 transition-all">
                 <Gift className="w-6 h-6 text-blue-400 mx-auto mb-2" />
                 <div className="text-sm text-white/60">Today's Offers</div>
-                <div className="text-lg font-bold text-white">{safeStats.dailyOffers}</div>
+                <div className="text-lg font-bold text-white">{userStats.dailyOffers}</div>
               </div>
             </div>
 
@@ -183,7 +232,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose, stats })
                           <div className="flex justify-between text-sm mb-1">
                             <span className="text-white/80">Progress to {nextLevel.name}</span>
                             <span className="text-yellow-400">
-                              {safeStats.completedOffers % 30}/{nextLevel.threshold} Offers
+                              {userStats.completedOffers % 30}/{nextLevel.threshold} Offers
                             </span>
                           </div>
                           <div className="h-2 bg-blue-950/50 rounded-full overflow-hidden">
@@ -201,7 +250,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose, stats })
                   <div className="space-y-4">
                     {COMPLETION_LEVELS.map((level, index) => {
                       const Icon = level.icon;
-                      const isCompleted = safeStats.completedOffers >= level.threshold;
+                      const isCompleted = userStats.completedOffers >= level.threshold;
                       const isActive = currentLevel?.name === level.name;
                       
                       return (
@@ -231,7 +280,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose, stats })
                             <div
                               className={`h-full transition-all duration-500 bg-${level.color}`}
                               style={{
-                                width: `${Math.min((safeStats.completedOffers / level.threshold) * 100, 100)}%`
+                                width: `${Math.min((userStats.completedOffers / level.threshold) * 100, 100)}%`
                               }}
                             ></div>
                           </div>
@@ -257,8 +306,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose, stats })
 
                   <div className="space-y-4">
                     {DAILY_GOALS.map((goal, index) => {
-                      const isCompleted = safeStats.dailyOffers >= goal.offers;
-                      const progress = Math.min((safeStats.dailyOffers / goal.offers) * 100, 100);
+                      const isCompleted = userStats.dailyOffers >= goal.offers;
+                      const progress = Math.min((userStats.dailyOffers / goal.offers) * 100, 100);
                       const Icon = goal.icon;
 
                       return (
@@ -282,7 +331,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose, stats })
                                   {goal.offers} Offers
                                 </span>
                                 <div className="text-sm text-white/60">
-                                  {isCompleted ? 'Completed' : `${goal.offers - safeStats.dailyOffers} more to go`}
+                                  {isCompleted ? 'Completed' : `${goal.offers - userStats.dailyOffers} more to go`}
                                 </div>
                               </div>
                             </div>
@@ -304,7 +353,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose, stats })
                           </div>
                           <div className="flex justify-between mt-2 text-sm">
                             <span className="text-white/60">
-                              {Math.min(safeStats.dailyOffers, goal.offers)}/{goal.offers}
+                              {Math.min(userStats.dailyOffers, goal.offers)}/{goal.offers}
                             </span>
                             {isCompleted && (
                               <span className="text-yellow-400 flex items-center gap-1">
@@ -334,7 +383,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose, stats })
                         <h4 className="font-semibold text-white">First Earnings</h4>
                         <p className="text-sm text-white/60">Complete your first offer</p>
                       </div>
-                      {safeStats.completedOffers > 0 && (
+                      {userStats.completedOffers > 0 && (
                         <div className="ml-auto">
                           <div className="bg-green-500/20 text-green-500 text-xs font-semibold px-2 py-1 rounded-full">
                             Completed
@@ -345,7 +394,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose, stats })
                     <div className="h-2 bg-blue-950/50 rounded-full overflow-hidden">
                       <div
                         className="h-full bg-yellow-400 transition-all duration-500"
-                        style={{ width: safeStats.completedOffers > 0 ? '100%' : '0%' }}
+                        style={{ width: userStats.completedOffers > 0 ? '100%' : '0%' }}
                       ></div>
                     </div>
                   </div>
@@ -359,7 +408,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose, stats })
                         <h4 className="font-semibold text-white">Hot Streak</h4>
                         <p className="text-sm text-white/60">Complete offers 7 days in a row</p>
                       </div>
-                      {safeStats.streak >= 7 && (
+                      {userStats.streak >= 7 && (
                         <div className="ml-auto">
                           <div className="bg-green-500/20 text-green-500 text-xs font-semibold px-2 py-1 rounded-full">
                             Completed
@@ -370,11 +419,11 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose, stats })
                     <div className="h-2 bg-blue-950/50 rounded-full overflow-hidden">
                       <div
                         className="h-full bg-purple-400 transition-all duration-500"
-                        style={{ width: `${Math.min((safeStats.streak / 7) * 100, 100)}%` }}
+                        style={{ width: `${Math.min((userStats.streak / 7) * 100, 100)}%` }}
                       ></div>
                     </div>
                     <div className="flex justify-between mt-2">
-                      <span className="text-white/60 text-sm">{safeStats.streak}/7 days</span>
+                      <span className="text-white/60 text-sm">{userStats.streak}/7 days</span>
                     </div>
                   </div>
 
@@ -387,7 +436,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose, stats })
                         <h4 className="font-semibold text-white">Daily Champion</h4>
                         <p className="text-sm text-white/60">Complete all daily goals</p>
                       </div>
-                      {safeStats.dailyOffers >= 10 && (
+                      {userStats.dailyOffers >= 10 && (
                         <div className="ml-auto">
                           <div className="bg-green-500/20 text-green-500 text-xs font-semibold px-2 py-1 rounded-full">
                             Completed
@@ -398,11 +447,11 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose, stats })
                     <div className="h-2 bg-blue-950/50 rounded-full overflow-hidden">
                       <div
                         className="h-full bg-blue-400 transition-all duration-500"
-                        style={{ width: `${Math.min((safeStats.dailyOffers / 10) * 100, 100)}%` }}
+                        style={{ width: `${Math.min((userStats.dailyOffers / 10) * 100, 100)}%` }}
                       ></div>
                     </div>
                     <div className="flex justify-between mt-2">
-                      <span className="text-white/60 text-sm">{safeStats.dailyOffers}/10 offers</span>
+                      <span className="text-white/60 text-sm">{userStats.dailyOffers}/10 offers</span>
                     </div>
                   </div>
 
@@ -415,7 +464,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose, stats })
                         <h4 className="font-semibold text-white">Elite Earner</h4>
                         <p className="text-sm text-white/60">Earn your first $100</p>
                       </div>
-                      {safeStats.earned >= 100 && (
+                      {userStats.earned >= 100 && (
                         <div className="ml-auto">
                           <div className="bg-green-500/20 text-green-500 text-xs font-semibold px-2 py-1 rounded-full">
                             Completed
@@ -426,11 +475,11 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose, stats })
                     <div className="h-2 bg-blue-950/50 rounded-full overflow-hidden">
                       <div
                         className="h-full bg-green-400 transition-all duration-500"
-                        style={{ width: `${Math.min((safeStats.earned / 100) * 100, 100)}%` }}
+                        style={{ width: `${Math.min((userStats.earned / 100) * 100, 100)}%` }}
                       ></div>
                     </div>
                     <div className="flex justify-between mt-2">
-                      <span className="text-white/60 text-sm">${safeStats.earned.toFixed(2)}/$100</span>
+                      <span className="text-white/60 text-sm">${userStats.earned.toFixed(2)}/$100</span>
                     </div>
                   </div>
                 </div>
@@ -491,6 +540,28 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose, stats })
                     View
                   </button>
                 </div>
+
+                {/* Logout Button */}
+                <button
+                  onClick={handleLogout}
+                  disabled={isLoggingOut}
+                  className="w-full bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all disabled:opacity-50 mt-4"
+                >
+                  {isLoggingOut ? (
+                    <>
+                      <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Logging out...
+                    </>
+                  ) : (
+                    <>
+                      <LogOut className="w-5 h-5" />
+                      Logout
+                    </>
+                  )}
+                </button>
               </div>
             )}
           </div>

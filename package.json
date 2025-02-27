@@ -8,7 +8,9 @@
     "build": "tsc && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "server": "tsx src/server.ts"
+    "server": "tsx src/server.ts",
+    "start": "node dist/server.js",
+    "postbuild": "tsc src/server.ts src/api/postback.ts src/services/postbackService.ts --outDir dist --esModuleInterop --skipLibCheck"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.7",

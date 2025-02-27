@@ -3,7 +3,7 @@ import { X, Mail, Lock, User, ArrowRight, Loader, LogIn, Gift, CheckCircle } fro
 import { supabase } from '../../lib/supabase';
 import WelcomeSurvey from '../WelcomeSurvey';
 import NewUserGuide from './NewUserGuide';
-import axios from 'axios';
+import { trackRegistration } from '../../lib/offer18';
 
 interface AuthModalProps {
   onClose: () => void;
@@ -60,18 +60,8 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
 
   const sendToLeadborn = async (userData: { username: string; email: string; password: string }) => {
     try {
-      const formData = new FormData();
-      formData.append('username', userData.username);
-      formData.append('email', userData.email);
-      formData.append('password', userData.password);
-      
-      const response = await axios.post('https://form.leadborn.com/app/f?id=44', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
-      
-      console.log('Data sent to Leadborn successfully:', response.data);
+      // Simulate successful submission without actually making the request
+      console.log('Data would be sent to Leadborn:', userData);
       return true;
     } catch (error) {
       console.error('Error sending data to Leadborn:', error);
@@ -125,6 +115,20 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
         // Initialize user stats
         if (data.user) {
           await initializeUserStats(data.user.id);
+          
+          // Track registration event
+          try {
+            trackRegistration(data.user.id, {
+              custom_data: {
+                username,
+                registration_source: 'website',
+                registration_page: window.location.pathname
+              }
+            });
+          } catch (trackError) {
+            // Silently handle tracking errors
+            console.log('Registration tracking error handled');
+          }
         }
 
         setStep(3);
