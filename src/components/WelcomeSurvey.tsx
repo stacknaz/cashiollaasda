@@ -44,7 +44,11 @@ const SURVEY_QUESTIONS: Question[] = [
   }
 ];
 
-const WelcomeSurvey = () => {
+interface WelcomeSurveyProps {
+  onComplete: () => void;
+}
+
+const WelcomeSurvey: React.FC<WelcomeSurveyProps> = ({ onComplete }) => {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [showCompletion, setShowCompletion] = useState(false);
@@ -85,6 +89,11 @@ const WelcomeSurvey = () => {
       
       // Show completion screen
       setShowCompletion(true);
+      
+      // Call onComplete after a delay
+      setTimeout(() => {
+        onComplete();
+      }, 2000);
     }
   };
 

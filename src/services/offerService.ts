@@ -19,6 +19,7 @@ export interface OfferItem {
   type: string;
   photo: string;
   points: number;
+  difficulty?: 'Easy' | 'Medium' | 'Hard';
   offer_id?: string;
 }
 
@@ -110,6 +111,18 @@ const validateOffer = (offer: any): boolean => {
   return true;
 };
 
+// Update the getDifficulty function
+const getDifficulty = (conversion: string): 'Easy' | 'Medium' | 'Hard' => {
+  const convRate = parseFloat(conversion);
+  if (convRate > 0.3) return 'Easy';
+  if (convRate > 0.1) return 'Medium';
+  return 'Hard';
+};
+
+export const formatPoints = (points: number): string => {
+  return new Intl.NumberFormat().format(points);
+};
+
 export const trackOfferClick = async (offer: OfferItem) => {
   try {
     const { data: { user } } = await supabase.auth.getUser();
@@ -143,7 +156,8 @@ export const trackOfferClick = async (offer: OfferItem) => {
               userAgent,
               ip: userIp,
               platform: navigator.platform,
-              language: navigator.language
+              language: navigator.language,
+              difficulty: offer.difficulty
             },
             category: offer.category,
             points: offer.points
@@ -224,6 +238,7 @@ export const fetchOffers = async (options: OfferFeedOptions = {}): Promise<Offer
       .map((offer: any) => {
         const reward = sanitizeNumber(offer.payout);
         const offerId = extractOfferId(offer.offerlink);
+        const conversion = sanitizeString(offer.conversion);
         
         return {
           title: sanitizeString(offer.title),
@@ -233,10 +248,11 @@ export const fetchOffers = async (options: OfferFeedOptions = {}): Promise<Offer
           category: sanitizeString(offer.category),
           reward: reward.toFixed(2),
           country: sanitizeString(offer.country),
-          conversion: sanitizeString(offer.conversion),
+          conversion,
           type: sanitizeString(offer.type) || 'Other',
           photo: getOfferImage(offer),
           points: Math.floor(reward * 100),
+          difficulty: getDifficulty(conversion),
           offer_id: offerId
         };
       })
@@ -262,10 +278,6 @@ export const calculateEarningPotential = (offers: OfferItem[]): number => {
   return offers.reduce((total, offer) => {
     return total + sanitizeNumber(offer.reward);
   }, 0);
-};
-
-export const formatPoints = (points: number): string => {
-  return new Intl.NumberFormat().format(points);
 };
 
 export const getDeviceType = (): 'mobile' | 'desktop' => {

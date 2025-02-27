@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Timer, Star, Globe, ArrowRight, Gift } from 'lucide-react';
 import { formatPoints, trackOfferClick } from '../services/offerService';
 import type { OfferItem } from '../services/offerService';
@@ -19,12 +19,26 @@ const OfferCard: React.FC<OfferCardProps> = ({
   photo,
   conversion,
   link,
+  difficulty = 'Easy',
   onStart
 }) => {
   const [showModal, setShowModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showNotification, setShowNotification] = useState(false);
+
+  useEffect(() => {
+    // Listen for offer completion events
+    const handleOfferComplete = (event: MessageEvent) => {
+      if (event.data?.type === 'offerCompleted' && event.data?.offerId === link) {
+        setShowNotification(true);
+        onStart();
+      }
+    };
+
+    window.addEventListener('message', handleOfferComplete);
+    return () => window.removeEventListener('message', handleOfferComplete);
+  }, [link, onStart]);
 
   const handleStartOffer = async (e?: React.MouseEvent) => {
     if (e) {
@@ -45,6 +59,7 @@ const OfferCard: React.FC<OfferCardProps> = ({
         photo,
         conversion,
         link,
+        difficulty,
         pubDate: new Date().toISOString(),
         category: type
       });
@@ -54,19 +69,8 @@ const OfferCard: React.FC<OfferCardProps> = ({
       }
 
       // Open offer in new window
-      const offerWindow = window.open(trackedLink, '_blank');
+      window.open(trackedLink, '_blank');
       
-      // Set up message listener for offer completion
-      window.addEventListener('message', (event) => {
-        if (event.data?.type === 'offerCompleted' && event.data?.offerId === trackedLink) {
-          setShowNotification(true);
-          onStart();
-          if (offerWindow) {
-            offerWindow.close();
-          }
-        }
-      });
-
     } catch (error) {
       console.error('Error starting offer:', error);
       setError('Unable to start offer. Please try again.');
@@ -88,7 +92,7 @@ const OfferCard: React.FC<OfferCardProps> = ({
             alt={title} 
             className="w-full h-full object-cover"
             onError={(e) => {
-              e.currentTarget.src = 'https://images.unsplash.com/photo-1579621970588-a35 d0e7ab9b6?auto=format&fit=crop&w=800&q=80';
+              e.currentTarget.src = 'https://images.unsplash.com/photo-1579621970588-a35d0e7ab9b6?auto=format&fit=crop&w=800&q=80';
             }}
           />
           <div className="absolute top-3 right-3 sm:top-4 sm:right-4">
@@ -117,7 +121,9 @@ const OfferCard: React.FC<OfferCardProps> = ({
               </div>
               <div className="flex items-center">
                 <Star className="w-4 h-4 mr-2 text-yellow-400" />
-                <span>{type}</span>
+                <span className="bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full text-xs">
+                  {difficulty}
+                </span>
               </div>
             </div>
           </div>
@@ -163,6 +169,7 @@ const OfferCard: React.FC<OfferCardProps> = ({
             photo,
             conversion,
             link,
+            difficulty,
             onClose: () => setShowModal(false),
             onStart: handleStartOffer
           }}

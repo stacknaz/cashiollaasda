@@ -1,0 +1,6 @@
+# Netlify redirects file
+# Redirect API requests to serverless functions
+/api/postback  /.netlify/functions/postback  200
+
+# Handle SPA routing
+/*  /index.html  200

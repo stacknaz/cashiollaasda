@@ -40,7 +40,7 @@ export const handlePostback = async (req: Request, res: Response) => {
       tracking_id: tracking_id as string,
       password: password as string,
       ip_address: req.ip,
-      user_agent: req.headers['user-agent'],
+      user_agent: req.headers['user-agent'] as string,
       raw_data: req.query
     });
 
@@ -51,7 +51,7 @@ export const handlePostback = async (req: Request, res: Response) => {
       message: 'Postback processed successfully',
       data: result
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Postback error:', error);
     return res.status(500).json({
       error: 'Failed to process postback',

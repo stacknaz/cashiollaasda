@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { X, Mail, Lock, User, ArrowRight, Loader, LogIn } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Mail, Lock, User, ArrowRight, Loader, LogIn, Gift, CheckCircle } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import WelcomeSurvey from '../WelcomeSurvey';
+import NewUserGuide from './NewUserGuide';
 
 interface AuthModalProps {
   onClose: () => void;
@@ -16,6 +17,29 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showSurvey, setShowSurvey] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
+
+  const initializeUserStats = async (userId: string) => {
+    try {
+      const { error: statsError } = await supabase
+        .from('user_stats')
+        .insert({
+          user_id: userId,
+          total_earnings: 0,
+          completed_offers: 0,
+          pending_offers: 0,
+          rejected_offers: 0,
+          success_rate: 0,
+          average_reward: 0,
+          daily_offers: 0,
+          streak_days: 0
+        });
+
+      if (statsError) throw statsError;
+    } catch (error) {
+      console.error('Error initializing user stats:', error);
+    }
+  };
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,12 +56,14 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
         if (signInError) throw signInError;
         onClose();
       } else {
-        const { error: signUpError } = await supabase.auth.signUp({
+        const { error: signUpError, data } = await supabase.auth.signUp({
           email,
           password,
           options: {
             data: {
               username,
+              offers_completed: 0,
+              requires_offers: true
             },
           },
         });
@@ -50,14 +76,24 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
           throw signUpError;
         }
 
+        // Initialize user stats
+        if (data.user) {
+          await initializeUserStats(data.user.id);
+        }
+
         setStep(3);
-        setShowSurvey(true); // Show survey after successful registration
+        setShowSurvey(true);
       }
     } catch (err) {
       setError(err.message || 'An error occurred during authentication');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSurveyComplete = () => {
+    setShowSurvey(false);
+    setShowGuide(true);
   };
 
   return (
@@ -213,18 +249,25 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
             {step === 3 && (
               <div className="text-center space-y-6">
                 <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto">
-                  <svg className="w-10 h-10 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                  </svg>
+                  <CheckCircle className="w-10 h-10 text-green-500" />
                 </div>
                 <div>
                   <h2 className="text-2xl font-bold text-white mb-2">Account Created!</h2>
                   <p className="text-white/80">
-                    Welcome to EarnRewards! You can now start completing offers and earning rewards.
+                    Welcome to Cashiolla! Complete 3 offers to unlock full access to all features.
+                  </p>
+                </div>
+                <div className="bg-blue-900/30 p-4 rounded-xl">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Gift className="w-5 h-5 text-yellow-400" />
+                    <span className="text-white font-medium">New User Bonus</span>
+                  </div>
+                  <p className="text-white/60 text-sm">
+                    Complete your first 3 offers and get a 2x reward multiplier!
                   </p>
                 </div>
                 <button
-                  onClick={onClose}
+                  onClick={() => handleSurveyComplete()}
                   className="w-full bg-yellow-400 hover:bg-yellow-500 text-blue-950 px-6 py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all"
                 >
                   Start Earning
@@ -236,8 +279,8 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
         </div>
       </div>
 
-      {/* Show Welcome Survey after registration */}
-      {showSurvey && <WelcomeSurvey />}
+      {showSurvey && <WelcomeSurvey onComplete={handleSurveyComplete} />}
+      {showGuide && <NewUserGuide onClose={onClose} />}
     </>
   );
 };

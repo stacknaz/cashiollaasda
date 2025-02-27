@@ -13,7 +13,7 @@ export interface PostbackData {
 }
 
 const POSTBACK_PASSWORD = '7839877';
-const POSTBACK_DOMAIN = 'https://app.winappio.com';
+const POSTBACK_DOMAIN = 'https://cashiolla-rewards.netlify.app';
 
 export const validatePostbackPassword = (password: string): boolean => {
   return password === POSTBACK_PASSWORD;
@@ -37,6 +37,27 @@ export const processPostback = async (data: PostbackData) => {
       throw new Error('Offer click not found');
     }
 
+    // Get user metadata
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      throw new Error('User not found');
+    }
+
+    // Update user metadata with completed offers count
+    const currentOffers = user.user_metadata.offers_completed || 0;
+    const newOffersCount = currentOffers + 1;
+
+    const { error: updateError } = await supabase.auth.updateUser({
+      data: {
+        offers_completed: newOffersCount,
+        requires_offers: newOffersCount < 3
+      }
+    });
+
+    if (updateError) {
+      console.error('Error updating user metadata:', updateError);
+    }
+
     // Process the completed offer
     const { data: completedOffer, error: processError } = await supabase
       .rpc('process_completed_offer', {
@@ -55,6 +76,44 @@ export const processPostback = async (data: PostbackData) => {
     if (processError) {
       throw processError;
     }
+
+    // Update offer click status
+    const { error: updateClickError } = await supabase
+      .from('offer_clicks')
+      .update({
+        status: 'completed',
+        completed_at: new Date().toISOString(),
+        postback_received: true,
+        postback_amount: data.payout || offerClick.reward
+      })
+      .eq('id', data.click_id);
+
+    if (updateClickError) {
+      console.error('Error updating offer click:', updateClickError);
+    }
+
+    // Update user stats
+    const { error: statsError } = await supabase
+      .from('user_stats')
+      .update({
+        total_earnings: supabase.rpc('increment', { x: data.payout || offerClick.reward }),
+        completed_offers: supabase.rpc('increment', { x: 1 }),
+        daily_offers: supabase.rpc('increment', { x: 1 }),
+        updated_at: new Date().toISOString()
+      })
+      .eq('user_id', offerClick.user_id);
+
+    if (statsError) {
+      console.error('Error updating user stats:', statsError);
+    }
+
+    // Broadcast completion event
+    window.postMessage({
+      type: 'offerCompleted',
+      offerId: data.click_id,
+      reward: data.payout || offerClick.reward,
+      totalCompleted: newOffersCount
+    }, '*');
 
     return completedOffer;
   } catch (error) {

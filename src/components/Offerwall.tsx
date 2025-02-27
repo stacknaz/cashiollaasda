@@ -95,22 +95,19 @@ const Offerwall = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      setUsername(user.user_metadata.username || '');
+      const { data: stats, error: statsError } = await supabase
+        .from('user_stats')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
 
-      const { data: offerClicks, error } = await supabase
-        .from('offer_clicks')
-        .select('reward, status')
-        .eq('user_id', user.id);
+      if (statsError) throw statsError;
 
-      if (error) throw error;
+      setEarned(stats.total_earnings);
+      setCompletedOffers(stats.completed_offers);
+      setDailyOffers(stats.daily_offers);
+      setStreak(stats.streak_days);
 
-      const completedCount = offerClicks?.filter(click => click.status === 'completed').length || 0;
-      const totalEarned = offerClicks?.reduce((sum, click) => {
-        return click.status === 'completed' ? sum + (click.reward || 0) : sum;
-      }, 0) || 0;
-
-      setCompletedOffers(completedCount);
-      setEarned(totalEarned);
     } catch (error) {
       console.error('Error fetching user stats:', error);
     }
@@ -131,6 +128,26 @@ const Offerwall = () => {
     return () => {
       subscription.unsubscribe();
     };
+  }, []);
+
+  useEffect(() => {
+    const handleOfferComplete = async (event: MessageEvent) => {
+      if (event.data?.type === 'offerCompleted') {
+        await fetchUserStats();
+        
+        // Show completion notification
+        if (event.data.totalCompleted === 3) {
+          // User completed their first 3 offers
+          setShowNotification({
+            message: 'Congratulations! You\'ve unlocked full access and 2x rewards!',
+            type: 'achievement'
+          });
+        }
+      }
+    };
+
+    window.addEventListener('message', handleOfferComplete);
+    return () => window.removeEventListener('message', handleOfferComplete);
   }, []);
 
   const { data: offerSettings } = useQuery('offerSettings', getOptimalOfferSettings, {
