@@ -26,6 +26,10 @@ export interface Database {
           completion_time: string | null
           category: string | null
           points: number
+          offer_id: string | null
+          tracking_id: string | null
+          postback_received: boolean | null
+          postback_amount: number | null
         }
         Insert: {
           id?: string
@@ -43,6 +47,10 @@ export interface Database {
           completion_time?: string | null
           category?: string | null
           points?: number
+          offer_id?: string | null
+          tracking_id?: string | null
+          postback_received?: boolean | null
+          postback_amount?: number | null
         }
         Update: {
           id?: string
@@ -60,6 +68,10 @@ export interface Database {
           completion_time?: string | null
           category?: string | null
           points?: number
+          offer_id?: string | null
+          tracking_id?: string | null
+          postback_received?: boolean | null
+          postback_amount?: number | null
         }
       }
       offer_history: {
@@ -73,6 +85,8 @@ export interface Database {
           details: Json
           created_at: string
           updated_at: string
+          offer_id: string | null
+          tracking_id: string | null
         }
         Insert: {
           id?: string
@@ -84,6 +98,8 @@ export interface Database {
           details?: Json
           created_at?: string
           updated_at?: string
+          offer_id?: string | null
+          tracking_id?: string | null
         }
         Update: {
           id?: string
@@ -95,6 +111,8 @@ export interface Database {
           details?: Json
           created_at?: string
           updated_at?: string
+          offer_id?: string | null
+          tracking_id?: string | null
         }
       }
       user_stats: {

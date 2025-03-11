@@ -1,12 +1,18 @@
 import { supabase } from '../lib/supabase';
 import axios from 'axios';
-import { getPostbackUrl } from './postbackService';
-import { trackOfferClick, trackOfferImpression } from '../lib/offer18';
+import { trackOfferClick, trackOfferImpression, TrackingEventType, TrackingParams } from '../lib/offer18';
 
 const BASE_URL = 'https://www.cpagrip.com';
 const TRACKING_DOMAIN = 'motifiles.com';
 const USER_ID = '43957';
 const PUBLIC_KEY = '6641304862927940f9fc6973e2459084';
+
+// Helper function to generate UUID using Web Crypto API
+function generateUUID() {
+  return ([1e7] as any + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, (c: any) =>
+    (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+  );
+}
 
 export interface OfferItem {
   title: string;
@@ -121,90 +127,71 @@ export const formatPoints = (points: number): string => {
   return new Intl.NumberFormat().format(points);
 };
 
-export const trackOfferClickEvent = async (offer: OfferItem) => {
+export const trackOfferClickEvent = async (
+  userId: string,
+  offerId: string,
+  offerTitle: string,
+  reward: number,
+  originalLink: string,
+  deviceInfo: any,
+  category: string,
+  points: number
+) => {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    const userIp = await getUserIP();
-    const userAgent = getUserAgent();
-    const clickId = crypto.randomUUID();
+    // Generate unique IDs
+    const clickId = generateUUID();
+    const trackingId = `track_${Date.now()}_${generateUUID().split('-')[0]}`;
 
-    // Extract offer ID from the link
-    const offerId = extractOfferId(offer.link);
-    if (!offerId) {
-      return null;
+    // Create click record
+    const { error } = await supabase.from('offer_clicks').insert({
+      id: clickId,
+      user_id: userId,
+      offer_id: offerId,
+      offer_title: offerTitle,
+      offer_type: category,
+      reward,
+      clicked_at: new Date().toISOString(),
+      original_link: originalLink,
+      status: 'clicked',
+      tracking_id: trackingId,
+      device_info: deviceInfo,
+      category,
+      points,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    });
+
+    if (error) {
+      console.error('Error creating click record:', error);
+      throw error;
     }
 
-    // Track in Supabase if user is authenticated
-    if (user) {
-      try {
-        // Insert click record
-        const { error: insertError } = await supabase
-          .from('offer_clicks')
-          .insert({
-            id: clickId,
-            user_id: user.id,
-            offer_title: offer.title,
-            offer_type: offer.type,
-            reward: parseFloat(offer.reward),
-            clicked_at: new Date().toISOString(),
-            original_link: offer.link,
-            status: 'clicked',
-            device_info: {
-              ip: userIp,
-              platform: navigator.platform,
-              language: navigator.language
-            },
-            category: offer.category,
-            points: offer.points
-          });
-
-        if (insertError) throw insertError;
-
-        // Track with Offer18 - wrapped in try/catch to prevent errors
-        try {
-          trackOfferClick(offerId, clickId, {
-            user_id: user.id,
-            custom_data: {
-              offer_title: offer.title,
-              offer_type: offer.type,
-              reward: offer.reward,
-              country: offer.country
-            }
-          });
-        } catch (trackError) {
-          // Silent error handling
-        }
-
-        // Generate postback URL with all required parameters
-        const postbackUrl = getPostbackUrl(clickId);
-
-        // Build tracking URL with all necessary parameters
-        const params = new URLSearchParams({
-          user_id: USER_ID,
-          pubkey: PUBLIC_KEY,
-          offer_id: offerId,
-          click_id: clickId,
-          tracking_id: user.id,
-          ip: userIp || '',
-          ua: encodeURIComponent(userAgent),
-          s1: user.id,
-          s2: clickId,
-          s3: offer.type,
-          s4: userIp || '',
-          s5: new Date().toISOString(),
-          postback: encodeURIComponent(postbackUrl)
-        });
-
-        // Return the final tracking URL
-        return `${offer.link}&${params.toString()}`;
-      } catch (error) {
-        return null;
+    // Track click event
+    await trackOfferClick(offerId, clickId, {
+      user_id: userId,
+      aff_sub: trackingId,
+      custom_data: {
+        offer_title: offerTitle,
+        reward: reward,
+        category: category
       }
-    }
+    });
 
-    return offer.link;
+    // Generate postback URL using window.location.origin
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://cashiolla.com';
+    const postbackUrl = `${baseUrl}/api/postback?click_id=${clickId}&offer_id=${offerId}&tracking_id=${trackingId}`;
+
+    return {
+      success: true,
+      clickId,
+      trackingId,
+      postbackUrl,
+      originalLink
+    };
+
   } catch (error) {
-    return null;
+    console.error('Error in trackOfferClickEvent:', error);
+    throw error;
   }
 };
 
@@ -231,8 +218,7 @@ export const fetchOffers = async (options: OfferFeedOptions = {}): Promise<Offer
 
     const response = await axios.get(`${BASE_URL}/common/offer_feed_json.php?${params.toString()}`, {
       headers: {
-        'Accept': 'application/json',
-        'User-Agent': userAgent
+        'Accept': 'application/json'
       }
     });
 
@@ -263,13 +249,13 @@ export const fetchOffers = async (options: OfferFeedOptions = {}): Promise<Offer
           offer_id: offerId
         };
       })
-      .filter(offer => offer.offer_id && offer.link);
+      .filter((offer: OfferItem) => offer.offer_id && offer.link);
       
     // Track impressions for all offers - wrapped in try/catch to prevent errors
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        offers.forEach(offer => {
+        offers.forEach(function(offer: OfferItem) {
           if (offer.offer_id) {
             try {
               trackOfferImpression(offer.offer_id, {
@@ -280,14 +266,15 @@ export const fetchOffers = async (options: OfferFeedOptions = {}): Promise<Offer
                   reward: offer.reward
                 }
               });
-            } catch (trackError) {
-              // Silent error handling
+            } catch (error) {
+              // Silently fail impression tracking to not disrupt the user experience
+              console.warn('Failed to track offer impression:', error);
             }
           }
         });
       }
     } catch (error) {
-      // Silent error handling
+      console.warn('Failed to track offer impressions:', error);
     }
     
     return offers;

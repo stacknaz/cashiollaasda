@@ -9,7 +9,7 @@ export enum TrackingEventType {
 }
 
 // Interface for tracking parameters
-interface TrackingParams {
+export interface TrackingParams {
   offer_id?: string;
   aff_id?: string;
   aff_sub?: string;

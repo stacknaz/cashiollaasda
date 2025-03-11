@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Postback Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            cursor: pointer;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f5f5f5;
+            border-radius: 5px;
+        }
+        .error {
+            color: red;
+        }
+        .success {
+            color: green;
+        }
+    </style>
+</head>
+<body>
+    <h1>Postback Test Tool</h1>
+    <p>Use this tool to test your postback endpoint.</p>
+
+    <div class="form-group">
+        <label for="click_id">Click ID (required):</label>
+        <input type="text" id="click_id" placeholder="Enter click ID">
+    </div>
+
+    <div class="form-group">
+        <label for="payout">Payout:</label>
+        <input type="number" id="payout" placeholder="Enter payout amount" step="0.01">
+    </div>
+
+    <div class="form-group">
+        <label for="offer_id">Offer ID:</label>
+        <input type="text" id="offer_id" placeholder="Enter offer ID">
+    </div>
+
+    <div class="form-group">
+        <label for="tracking_id">Tracking ID:</label>
+        <input type="text" id="tracking_id" placeholder="Enter tracking ID">
+    </div>
+
+    <div class="form-group">
+        <label for="method">Request Method:</label>
+        <select id="method">
+            <option value="GET">GET</option>
+            <option value="POST">POST</option>
+        </select>
+    </div>
+
+    <button onclick="testPostback()">Test Postback</button>
+
+    <div id="result" class="result" style="display: none;"></div>
+
+    <script>
+        function testPostback() {
+            const clickId = document.getElementById('click_id').value;
+            const payout = document.getElementById('payout').value;
+            const offerId = document.getElementById('offer_id').value;
+            const trackingId = document.getElementById('tracking_id').value || `test_${Date.now()}`;
+            const method = document.getElementById('method').value;
+            
+            const resultDiv = document.getElementById('result');
+            resultDiv.style.display = 'block';
+            
+            if (!clickId) {
+                resultDiv.innerHTML = '<p class="error">Error: Click ID is required</p>';
+                return;
+            }
+            
+            const baseUrl = 'https://cashiolla.com/api/postback';
+            const params = new URLSearchParams();
+            
+            params.append('click_id', clickId);
+            if (payout) params.append('payout', payout);
+            if (offerId) params.append('offer_id', offerId);
+            params.append('tracking_id', trackingId);
+            
+            resultDiv.innerHTML = '<p>Sending request...</p>';
+            
+            if (method === 'GET') {
+                const url = `${baseUrl}?${params.toString()}`;
+                resultDiv.innerHTML += `<p>GET URL: <a href="${url}" target="_blank">${url}</a></p>`;
+                
+                fetch(url)
+                    .then(response => response.json())
+                    .then(data => {
+                        resultDiv.innerHTML += `<p class="success">Response: ${JSON.stringify(data, null, 2)}</p>`;
+                    })
+                    .catch(error => {
+                        resultDiv.innerHTML += `<p class="error">Error: ${error.message}</p>`;
+                    });
+            } else {
+                const options = {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        click_id: clickId,
+                        payout: payout ? parseFloat(payout) : undefined,
+                        offer_id: offerId || undefined,
+                        tracking_id: trackingId
+                    })
+                };
+                
+                resultDiv.innerHTML += `<p>POST URL: ${baseUrl}</p>`;
+                resultDiv.innerHTML += `<p>POST Body: ${options.body}</p>`;
+                
+                fetch(baseUrl, options)
+                    .then(response => response.json())
+                    .then(data => {
+                        resultDiv.innerHTML += `<p class="success">Response: ${JSON.stringify(data, null, 2)}</p>`;
+                    })
+                    .catch(error => {
+                        resultDiv.innerHTML += `<p class="error">Error: ${error.message}</p>`;
+                    });
+            }
+        }
+    </script>
+</body>
+</html> 

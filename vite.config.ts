@@ -2,13 +2,14 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
 export default defineConfig({
+  base: 'https://cashiolla.com/',
   plugins: [react()],
   server: {
     proxy: {
       '/api/postback': {
-        target: 'http://localhost:3000',
+        target: 'https://cashiolla.com',
         changeOrigin: true,
-        secure: false,
+        secure: true,
       },
     },
   },

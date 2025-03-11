@@ -5,6 +5,7 @@ import type { OfferItem } from '../services/offerService';
 import OfferModal from './OfferModal';
 import Notification from './Notification';
 import { trackOfferImpression } from '../lib/offer18';
+import { supabase } from '../lib/supabase';
 
 interface OfferCardProps extends OfferItem {
   onStart: () => void;
@@ -69,33 +70,48 @@ const OfferCard: React.FC<OfferCardProps> = ({
     try {
       setIsLoading(true);
       setError(null);
-      
-      const trackedLink = await trackOfferClickEvent({
-        title,
-        description,
-        reward,
-        country,
-        type,
-        points,
-        photo,
-        conversion,
-        link,
-        difficulty,
-        pubDate: new Date().toISOString(),
-        category: type,
-        offer_id
-      });
 
-      if (!trackedLink) {
-        throw new Error('Unable to generate tracking link. Please try again.');
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('Please login to start offers');
+      }
+      
+      // Get device info
+      const deviceInfo = {
+        platform: navigator.platform,
+        language: navigator.language,
+        userAgent: navigator.userAgent
+      };
+
+      const result = await trackOfferClickEvent(
+        user.id,
+        offer_id || '',
+        title,
+        parseFloat(reward),
+        link,
+        deviceInfo,
+        type,
+        points
+      );
+
+      if (!result) {
+        throw new Error('Unable to track offer click. Please try again.');
       }
 
+      // Log tracking info for debugging
+      console.log('Offer tracking info:', {
+        click_id: result.clickId,
+        offer_id: offer_id,
+        postback_url: result.postbackUrl
+      });
+
       // Open offer in new window
-      window.open(trackedLink, '_blank');
+      window.open(result.originalLink, '_blank');
       
     } catch (error) {
       console.error('Error starting offer:', error);
-      setError('Unable to start offer. Please try again.');
+      setError(error instanceof Error ? error.message : 'Unable to start offer. Please try again.');
     } finally {
       setIsLoading(false);
       setShowModal(false);

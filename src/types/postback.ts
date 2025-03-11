@@ -17,7 +17,6 @@ export interface PostbackRequest {
   payout: number;
   offer_id: string;
   tracking_id: string;
-  password: string;
 }
 
 export interface TestResult {

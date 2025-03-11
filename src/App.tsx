@@ -7,6 +7,9 @@ import LandingPage from './components/LandingPage';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
 import PublisherPage from './pages/PublisherPage';
+import TestPage from './pages/test';
+import { MantineProvider } from '@mantine/core';
+import { Notifications } from '@mantine/notifications';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
@@ -56,17 +59,31 @@ function App() {
   }
 
   return (
-    <Router>
-      <div className="min-h-screen bg-blue-950">
-        <Header isAuthenticated={isAuthenticated} />
-        <Routes>
-          <Route path="/privacy" element={<PrivacyPolicy />} />
-          <Route path="/terms" element={<TermsOfService />} />
-          <Route path="/publishers" element={<PublisherPage />} />
-          <Route path="/" element={isAuthenticated ? <Offerwall /> : <LandingPage />} />
-        </Routes>
-      </div>
-    </Router>
+    <MantineProvider
+      theme={{
+        colors: {
+          dark: ['#C1C2C5', '#A6A7AB', '#909296', '#5C5F66', '#373A40', '#2C2E33', '#25262B', '#1A1B1E', '#141517', '#101113'],
+        },
+        primaryColor: 'blue',
+        radius: {
+          md: '0.5rem'
+        },
+      }}
+    >
+      <Notifications />
+      <Router>
+        <div className="min-h-screen bg-blue-950">
+          <Header isAuthenticated={isAuthenticated} />
+          <Routes>
+            <Route path="/privacy" element={<PrivacyPolicy />} />
+            <Route path="/terms" element={<TermsOfService />} />
+            <Route path="/publishers" element={<PublisherPage />} />
+            <Route path="/test" element={<TestPage />} />
+            <Route path="/" element={isAuthenticated ? <Offerwall /> : <LandingPage />} />
+          </Routes>
+        </div>
+      </Router>
+    </MantineProvider>
   );
 }
 
