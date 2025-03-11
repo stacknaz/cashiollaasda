@@ -178,7 +178,7 @@ export const trackOfferClickEvent = async (
     });
 
     // Generate postback URL using window.location.origin
-    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://cashiolla.com';
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://cashiollav1.netlify.app';
     const postbackUrl = `${baseUrl}/api/postback?click_id=${clickId}&offer_id=${offerId}&tracking_id=${trackingId}`;
 
     return {

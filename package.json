@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "server": "tsx src/server.ts",
     "start": "node dist/server.js",
-    "postbuild": "tsc src/server.ts src/api/postback.ts src/services/postbackService.ts --outDir dist --esModuleInterop --skipLibCheck",
+    "postbuild": "tsc src/server.ts src/api/postback.ts --outDir dist --esModuleInterop --skipLibCheck",
     "test-postback": "tsx src/test-postback.ts",
     "verify-db": "tsx src/verify-db-changes.ts"
   },

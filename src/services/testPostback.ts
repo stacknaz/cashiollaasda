@@ -2,9 +2,9 @@ import { supabase } from '../lib/supabase';
 import axios from 'axios';
 import type { PostbackResponse } from '../types/postback';
 
-const POSTBACK_BASE_URL = process.env.NEXT_PUBLIC_POSTBACK_URL || 'https://cashiolla.com';
+const POSTBACK_BASE_URL = process.env.NEXT_PUBLIC_POSTBACK_URL || 'https://cashiollav1.netlify.app';
 
-export const simulatePostback = async () => {
+export const simulatePostback = async () => {   
   try {
     // Get the current user
     const { data: { user }, error: authError } = await supabase.auth.getUser();
